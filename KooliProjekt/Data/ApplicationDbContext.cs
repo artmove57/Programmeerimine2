@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Stripe;
 
 namespace KooliProjekt.Data
 {
@@ -9,5 +10,6 @@ namespace KooliProjekt.Data
             : base(options)
         {
         }
+        public DbSet<Customer>
     }
 }
