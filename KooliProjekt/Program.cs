@@ -1,4 +1,5 @@
 using KooliProjekt.Data;
+using KooliProjekt.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,14 @@ namespace KooliProjekt
 
             builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddEntityFrameworkStores<ApplicationDbContext>();
+
+            // Register service classes
+            builder.Services.AddScoped<ITeamService, TeamService>();
+            builder.Services.AddScoped<ITournamentService, TournamentService>();
+            builder.Services.AddScoped<IMatchesService, MatchesService>();
+            builder.Services.AddScoped<IPredictionService, PredictionService>();
+            builder.Services.AddScoped<IRankingService, RankingService>();
+
             builder.Services.AddControllersWithViews();
 
             var app = builder.Build();

@@ -1,28 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 using KooliProjekt.Data;
+using KooliProjekt.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace KooliProjekt.Controllers
 {
     public class RankingsController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IRankingService _rankingService;
 
-        public RankingsController(ApplicationDbContext context)
+        public RankingsController(IRankingService rankingService)
         {
-            _context = context;
+            _rankingService = rankingService;
         }
 
         // GET: Rankings
         public async Task<IActionResult> Index(int page = 1)
         {
-            var applicationDbContext = _context.Rankings.Include(r => r.Tournament).Include(r => r.User);
-            var data = await applicationDbContext.GetPagedAsync(page, 5);
+            var data = await _rankingService.List(page, 5);
             return View(data);
         }
 
@@ -34,10 +28,7 @@ namespace KooliProjekt.Controllers
                 return NotFound();
             }
 
-            var ranking = await _context.Rankings
-                .Include(r => r.Tournament)
-                .Include(r => r.User)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var ranking = await _rankingService.Get(id.Value);
             if (ranking == null)
             {
                 return NotFound();
@@ -47,16 +38,14 @@ namespace KooliProjekt.Controllers
         }
 
         // GET: Rankings/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            ViewData["TournamentId"] = new SelectList(_context.Tournaments, "Id", "Name");
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Email");
+            ViewData["TournamentId"] = await _rankingService.GetTournamentsSelectList();
+            ViewData["UserId"] = await _rankingService.GetUsersSelectList();
             return View();
         }
 
         // POST: Rankings/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,TotalPoints,TournamentId,UserId")] Ranking ranking)
@@ -66,12 +55,11 @@ namespace KooliProjekt.Controllers
 
             if (ModelState.IsValid)
             {
-                _context.Add(ranking);
-                await _context.SaveChangesAsync();
+                await _rankingService.Save(ranking);
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["TournamentId"] = new SelectList(_context.Tournaments, "Id", "Name", ranking.TournamentId);
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Email", ranking.UserId);
+            ViewData["TournamentId"] = await _rankingService.GetTournamentsSelectList(ranking.TournamentId);
+            ViewData["UserId"] = await _rankingService.GetUsersSelectList(ranking.UserId);
             return View(ranking);
         }
 
@@ -83,19 +71,17 @@ namespace KooliProjekt.Controllers
                 return NotFound();
             }
 
-            var ranking = await _context.Rankings.FindAsync(id);
+            var ranking = await _rankingService.Get(id.Value);
             if (ranking == null)
             {
                 return NotFound();
             }
-            ViewData["TournamentId"] = new SelectList(_context.Tournaments, "Id", "Name", ranking.TournamentId);
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Email", ranking.UserId);
+            ViewData["TournamentId"] = await _rankingService.GetTournamentsSelectList(ranking.TournamentId);
+            ViewData["UserId"] = await _rankingService.GetUsersSelectList(ranking.UserId);
             return View(ranking);
         }
 
         // POST: Rankings/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,TotalPoints,TournamentId,UserId")] Ranking ranking)
@@ -110,26 +96,11 @@ namespace KooliProjekt.Controllers
 
             if (ModelState.IsValid)
             {
-                try
-                {
-                    _context.Update(ranking);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!RankingExists(ranking.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
+                await _rankingService.Save(ranking);
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["TournamentId"] = new SelectList(_context.Tournaments, "Id", "Name", ranking.TournamentId);
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Email", ranking.UserId);
+            ViewData["TournamentId"] = await _rankingService.GetTournamentsSelectList(ranking.TournamentId);
+            ViewData["UserId"] = await _rankingService.GetUsersSelectList(ranking.UserId);
             return View(ranking);
         }
 
@@ -141,10 +112,7 @@ namespace KooliProjekt.Controllers
                 return NotFound();
             }
 
-            var ranking = await _context.Rankings
-                .Include(r => r.Tournament)
-                .Include(r => r.User)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var ranking = await _rankingService.Get(id.Value);
             if (ranking == null)
             {
                 return NotFound();
@@ -158,19 +126,8 @@ namespace KooliProjekt.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var ranking = await _context.Rankings.FindAsync(id);
-            if (ranking != null)
-            {
-                _context.Rankings.Remove(ranking);
-            }
-
-            await _context.SaveChangesAsync();
+            await _rankingService.Delete(id);
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool RankingExists(int id)
-        {
-            return _context.Rankings.Any(e => e.Id == id);
         }
     }
 }

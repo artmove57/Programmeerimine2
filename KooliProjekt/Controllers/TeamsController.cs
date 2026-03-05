@@ -1,27 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using KooliProjekt.Data;
+using KooliProjekt.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using KooliProjekt.Data;
 
 namespace KooliProjekt.Controllers
 {
     public class TeamsController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ITeamService _teamService;
 
-        public TeamsController(ApplicationDbContext context)
+        public TeamsController(ITeamService teamService)
         {
-            _context = context;
+            _teamService = teamService;
         }
 
         // GET: Teams
         public async Task<IActionResult> Index(int page = 1)
         {
-            var data = await _context.Teams.GetPagedAsync(page, 5);
+            var data = await _teamService.List(page, 5);
             return View(data);
         }
 
@@ -33,8 +28,7 @@ namespace KooliProjekt.Controllers
                 return NotFound();
             }
 
-            var team = await _context.Teams
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var team = await _teamService.Get(id.Value);
             if (team == null)
             {
                 return NotFound();
@@ -50,16 +44,13 @@ namespace KooliProjekt.Controllers
         }
 
         // POST: Teams/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Name")] Team team)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(team);
-                await _context.SaveChangesAsync();
+                await _teamService.Save(team);
                 return RedirectToAction(nameof(Index));
             }
             return View(team);
@@ -73,7 +64,7 @@ namespace KooliProjekt.Controllers
                 return NotFound();
             }
 
-            var team = await _context.Teams.FindAsync(id);
+            var team = await _teamService.Get(id.Value);
             if (team == null)
             {
                 return NotFound();
@@ -82,8 +73,6 @@ namespace KooliProjekt.Controllers
         }
 
         // POST: Teams/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name")] Team team)
@@ -95,22 +84,7 @@ namespace KooliProjekt.Controllers
 
             if (ModelState.IsValid)
             {
-                try
-                {
-                    _context.Update(team);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!TeamExists(team.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
+                await _teamService.Save(team);
                 return RedirectToAction(nameof(Index));
             }
             return View(team);
@@ -124,8 +98,7 @@ namespace KooliProjekt.Controllers
                 return NotFound();
             }
 
-            var team = await _context.Teams
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var team = await _teamService.Get(id.Value);
             if (team == null)
             {
                 return NotFound();
@@ -139,19 +112,8 @@ namespace KooliProjekt.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var team = await _context.Teams.FindAsync(id);
-            if (team != null)
-            {
-                _context.Teams.Remove(team);
-            }
-
-            await _context.SaveChangesAsync();
+            await _teamService.Delete(id);
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool TeamExists(int id)
-        {
-            return _context.Teams.Any(e => e.Id == id);
         }
     }
 }
