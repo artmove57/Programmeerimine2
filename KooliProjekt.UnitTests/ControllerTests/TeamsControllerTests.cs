@@ -11,11 +11,19 @@ namespace KooliProjekt.UnitTests.ControllerTests
 {
     public class TeamsControllerTests
     {
+        private readonly Mock<ITeamService> _mockService;
+        private readonly TeamsController _controller;
+
+        public TeamsControllerTests()
+        {
+            _mockService = new Mock<ITeamService>();
+            _controller = new TeamsController(_mockService.Object);
+        }
+
         [Fact]
         public async Task Index_ReturnsViewResult_WithTeamsIndexModel()
         {
             // Arrange
-            var mockService = new Mock<ITeamService>();
             var expectedData = new PagedResult<Team>
             {
                 Results = new List<Team>
@@ -29,13 +37,11 @@ namespace KooliProjekt.UnitTests.ControllerTests
                 RowCount = 2
             };
 
-            mockService.Setup(s => s.List(1, 5, It.IsAny<TeamsSearch>()))
+            _mockService.Setup(s => s.List(1, 5, It.IsAny<TeamsSearch>()))
                       .ReturnsAsync(expectedData);
 
-            var controller = new TeamsController(mockService.Object);
-
             // Act
-            var result = await controller.Index(1, null);
+            var result = await _controller.Index(1, null);
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(result);
@@ -49,7 +55,6 @@ namespace KooliProjekt.UnitTests.ControllerTests
         public async Task Index_ReturnsViewResult_WithSearchFilter()
         {
             // Arrange
-            var mockService = new Mock<ITeamService>();
             var search = new TeamsSearch { Name = "Manchester" };
             var expectedData = new PagedResult<Team>
             {
@@ -63,19 +68,120 @@ namespace KooliProjekt.UnitTests.ControllerTests
                 RowCount = 1
             };
 
-            mockService.Setup(s => s.List(1, 5, search))
+            _mockService.Setup(s => s.List(1, 5, search))
                       .ReturnsAsync(expectedData);
 
-            var controller = new TeamsController(mockService.Object);
-
             // Act
-            var result = await controller.Index(1, search);
+            var result = await _controller.Index(1, search);
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(result);
             var model = Assert.IsType<TeamsIndexModel>(viewResult.Model);
             Assert.Equal(1, model.Data.Results.Count);
             Assert.Equal("Manchester", model.Search.Name);
+        }
+
+        [Fact]
+        public async Task Details_ReturnsNotFound_WhenIdIsNull()
+        {
+            // Arrange
+            int? id = null;
+
+            // Act
+            var result = await _controller.Details(id);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public async Task Details_ReturnsNotFound_WhenTeamNotFound()
+        {
+            // Arrange
+            int? id = 1;
+            _mockService.Setup(s => s.Get(id.Value))
+                       .ReturnsAsync((Team)null);
+
+            // Act
+            var result = await _controller.Details(id);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public async Task Details_ReturnsViewResult_WithTeam_WhenTeamFound()
+        {
+            // Arrange
+            int? id = 1;
+            var team = new Team { Id = id.Value, Name = "Test Team" };
+            _mockService.Setup(s => s.Get(id.Value))
+                       .ReturnsAsync(team);
+
+            // Act
+            var result = await _controller.Details(id);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            Assert.True(string.IsNullOrEmpty(viewResult.ViewName) || viewResult.ViewName == "Details");
+            Assert.Equal(team, viewResult.Model);
+        }
+
+        [Fact]
+        public void Create_ReturnsViewResult()
+        {
+            // Act
+            var result = _controller.Create();
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            Assert.True(string.IsNullOrEmpty(viewResult.ViewName) || viewResult.ViewName == "Create");
+        }
+
+        [Fact]
+        public async Task Delete_ReturnsNotFound_WhenIdIsNull()
+        {
+            // Arrange
+            int? id = null;
+
+            // Act
+            var result = await _controller.Delete(id);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public async Task Delete_ReturnsNotFound_WhenTeamNotFound()
+        {
+            // Arrange
+            int? id = 1;
+            _mockService.Setup(s => s.Get(id.Value))
+                       .ReturnsAsync((Team)null);
+
+            // Act
+            var result = await _controller.Delete(id);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public async Task Delete_ReturnsViewResult_WithTeam_WhenTeamFound()
+        {
+            // Arrange
+            int? id = 1;
+            var team = new Team { Id = id.Value, Name = "Test Team" };
+            _mockService.Setup(s => s.Get(id.Value))
+                       .ReturnsAsync(team);
+
+            // Act
+            var result = await _controller.Delete(id);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            Assert.True(string.IsNullOrEmpty(viewResult.ViewName) || viewResult.ViewName == "Delete");
+            Assert.Equal(team, viewResult.Model);
         }
     }
 }
