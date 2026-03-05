@@ -3,9 +3,11 @@ using System.Linq;
 using KooliProjekt.Controllers;
 using KooliProjekt.Data;
 using KooliProjekt.Services;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,6 +41,9 @@ namespace KooliProjekt.IntegrationTests.Helpers
             services.AddScoped<IMatchesService, MatchesService>();
             services.AddScoped<IPredictionService, PredictionService>();
             services.AddScoped<IRankingService, RankingService>();
+
+            // Replace IAntiforgery with fake implementation for tests
+            services.AddSingleton<IAntiforgery, FakeAntiforgery>();
 
             services.AddControllersWithViews()
                     .AddApplicationPart(typeof(HomeController).Assembly);
