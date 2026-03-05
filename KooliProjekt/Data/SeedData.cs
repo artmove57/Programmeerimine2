@@ -7,56 +7,100 @@ namespace KooliProjekt.Data
     {
         public static void Generate(ApplicationDbContext context, UserManager<IdentityUser> userManager)
         {
-            if (context.Matches.Any())
+            // Check if data already exists
+            if (context.Teams.Any())
             {
                 return;
             }
 
-            var user = new IdentityUser
+            // Create 10 users
+            var users = new List<IdentityUser>();
+            for (int i = 1; i <= 10; i++)
             {
-                UserName = "newuser@example.com",
-                Email = "newuser@example.com",
-                NormalizedUserName = "NEWUSER@EXAMPLE.COM",
-                NormalizedEmail = "NEWUSER@EXAMPLE.COM"
-            };
+                var user = new IdentityUser
+                {
+                    UserName = $"user{i}@example.com",
+                    Email = $"user{i}@example.com",
+                    EmailConfirmed = true
+                };
+                userManager.CreateAsync(user, "Password123!").Wait();
+                users.Add(user);
+            }
 
-            userManager.CreateAsync(user, "Password123!").Wait();
-
-            var tournament1 = new Tournament
+            // Create 10 Tournaments
+            var tournaments = new List<Tournament>();
+            var tournamentNames = new[] { "Premier League", "La Liga", "Bundesliga", "Serie A", "Ligue 1", 
+                                          "Champions League", "Europa League", "World Cup", "Euro Cup", "Copa America" };
+            for (int i = 0; i < 10; i++)
             {
-                Name = "Bundesliga",
-                StartData = "2024-08-01",
-                EndData = "2025-05-31",
-                Description = "Football Match in German, 22 players are playing"
-            };
-            context.Tournaments.Add(tournament1);
+                var tournament = new Tournament
+                {
+                    Name = tournamentNames[i],
+                    StartData = $"2024-{(i % 12) + 1:D2}-01",
+                    EndData = $"2025-{(i % 12) + 1:D2}-01",
+                    Description = $"Major football tournament - {tournamentNames[i]}"
+                };
+                tournaments.Add(tournament);
+                context.Tournaments.Add(tournament);
+            }
 
-            var team1 = new Team
+            // Create 10 Teams
+            var teams = new List<Team>();
+            var teamNames = new[] { "Manchester United", "Real Madrid", "Bayern Munich", "Barcelona", "Liverpool",
+                                   "Juventus", "Paris SG", "Chelsea", "Arsenal", "AC Milan" };
+            for (int i = 0; i < 10; i++)
             {
-                Name = "Francfurt Eintraht"
-            };
-            context.Teams.Add(team1);
+                var team = new Team
+                {
+                    Name = teamNames[i]
+                };
+                teams.Add(team);
+                context.Teams.Add(team);
+            }
 
             context.SaveChanges();
 
-            var matches1 = new Matches
+            // Create 15 Matches (more than 10 to show paging)
+            var matches = new List<Matches>();
+            for (int i = 1; i <= 15; i++)
             {
-                Name = "Match 1",
-                StartData = "2024-08-15",
-                EndData = "2024-08-15",
-                TotalPoints = 0,
-                TeamId = team1.Id,
-                TournamentId = tournament1.Id
-            };
-            context.Matches.Add(matches1);
+                var match = new Matches
+                {
+                    Name = $"Match {i}",
+                    StartData = $"2024-{(i % 12) + 1:D2}-{(i % 28) + 1:D2}",
+                    EndData = $"2024-{(i % 12) + 1:D2}-{(i % 28) + 1:D2}",
+                    TotalPoints = i * 10,
+                    TeamId = teams[i % 10].Id,
+                    TournamentId = tournaments[i % 10].Id
+                };
+                matches.Add(match);
+                context.Matches.Add(match);
+            }
 
-            var ranking1 = new Ranking
+            context.SaveChanges();
+
+            // Create 12 Predictions
+            for (int i = 0; i < 12; i++)
             {
-                TotalPoints = 100,
-                TournamentId = tournament1.Id,
-                UserId = user.Id
-            };
-            context.Rankings.Add(ranking1);
+                var prediction = new Prediction
+                {
+                    MatchesId = matches[i % matches.Count].Id,
+                    UserId = users[i % users.Count].Id
+                };
+                context.Predictions.Add(prediction);
+            }
+
+            // Create 12 Rankings
+            for (int i = 0; i < 12; i++)
+            {
+                var ranking = new Ranking
+                {
+                    TotalPoints = (i + 1) * 50,
+                    TournamentId = tournaments[i % tournaments.Count].Id,
+                    UserId = users[i % users.Count].Id
+                };
+                context.Rankings.Add(ranking);
+            }
 
             context.SaveChanges();
         }
