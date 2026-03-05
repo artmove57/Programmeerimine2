@@ -1,0 +1,97 @@
+﻿<Window x:Class="KooliProjekt.WpfClient.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:KooliProjekt.WpfClient"
+        mc:Ignorable="d"
+        Title="Teams Management - Web API Client" Height="550" Width="900"
+        Loaded="Window_Loaded">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="300"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Pealkiri -->
+        <TextBlock Grid.Row="0" Grid.ColumnSpan="2" 
+                   Text="Teams Management (Web API Client)" 
+                   FontSize="24" FontWeight="Bold" 
+                   Margin="0,0,0,20"/>
+
+        <!-- Vasakpoolne paneel - Meeskondade nimekiri -->
+        <Border Grid.Row="1" Grid.Column="0" 
+                BorderBrush="Gray" BorderThickness="1" 
+                Padding="10" Margin="0,0,10,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="Meeskonnad" 
+                           FontSize="18" FontWeight="Bold" Margin="0,0,0,10"/>
+
+                <ListBox Grid.Row="1" Name="TeamsListBox" 
+                         DisplayMemberPath="Name"
+                         SelectionChanged="TeamsListBox_SelectionChanged"
+                         Margin="0,0,0,10"/>
+
+                <Button Grid.Row="2" Content="Värskenda nimekirja" 
+                        Click="RefreshButton_Click"
+                        Padding="10,5" FontSize="14"/>
+            </Grid>
+        </Border>
+
+        <!-- Parempoolne paneel - Meeskonna detailid ja toimingud -->
+        <Border Grid.Row="1" Grid.Column="1" 
+                BorderBrush="Gray" BorderThickness="1" Padding="10">
+            <StackPanel>
+                <TextBlock Text="Meeskonna detailid" 
+                           FontSize="18" FontWeight="Bold" Margin="0,0,0,20"/>
+
+                <!-- ID väli (read-only) -->
+                <TextBlock Text="ID:" FontWeight="Bold" Margin="0,0,0,5"/>
+                <TextBox Name="IdTextBox" IsReadOnly="True" 
+                         Background="LightGray" Margin="0,0,0,15"/>
+
+                <!-- Nimi väli -->
+                <TextBlock Text="Nimi:" FontWeight="Bold" Margin="0,0,0,5"/>
+                <TextBox Name="NameTextBox" Margin="0,0,0,20"/>
+
+                <!-- Nupud -->
+                <Button Content="Uus meeskond" 
+                        Click="NewButton_Click"
+                        Padding="10,5" Margin="0,0,0,10" FontSize="14"/>
+
+                <Button Content="Salvesta" 
+                        Click="SaveButton_Click"
+                        Padding="10,5" Margin="0,0,0,10" FontSize="14"
+                        Background="LightGreen"/>
+
+                <Button Content="Kustuta" 
+                        Click="DeleteButton_Click"
+                        Padding="10,5" Margin="0,0,0,10" FontSize="14"
+                        Background="LightCoral"/>
+
+                <Button Content="Tühista" 
+                        Click="CancelButton_Click"
+                        Padding="10,5" FontSize="14"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Olekuriba -->
+        <Border Grid.Row="2" Grid.ColumnSpan="2" 
+                Background="LightGray" Padding="10" Margin="0,10,0,0">
+            <TextBlock Name="StatusTextBlock" 
+                       Text="Valmis" FontSize="12"/>
+        </Border>
+    </Grid>
+</Window>
