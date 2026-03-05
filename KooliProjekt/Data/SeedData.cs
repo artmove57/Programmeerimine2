@@ -1,57 +1,64 @@
 ﻿using KooliProjekt.Data;
-using Microsoft.AspNetCore.Components.Forms;
-using System.Data;
+using Microsoft.AspNetCore.Identity;
 
-public static class SeedData
+namespace KooliProjekt.Data
 {
-    public static void Generate(ApplicationDbContext context)
+    public static class SeedData
     {
-        if (context.Matches.Any())
+        public static void Generate(ApplicationDbContext context, UserManager<IdentityUser> userManager)
         {
-            return;
+            if (context.Matches.Any())
+            {
+                return;
+            }
+
+            var user = new IdentityUser
+            {
+                UserName = "newuser@example.com",
+                Email = "newuser@example.com",
+                NormalizedUserName = "NEWUSER@EXAMPLE.COM",
+                NormalizedEmail = "NEWUSER@EXAMPLE.COM"
+            };
+
+            userManager.CreateAsync(user, "Password123!").Wait();
+
+            var tournament1 = new Tournament
+            {
+                Name = "Bundesliga",
+                StartData = "2024-08-01",
+                EndData = "2025-05-31",
+                Description = "Football Match in German, 22 players are playing"
+            };
+            context.Tournaments.Add(tournament1);
+
+            var team1 = new Team
+            {
+                Name = "Francfurt Eintraht"
+            };
+            context.Teams.Add(team1);
+
+            context.SaveChanges();
+
+            var matches1 = new Matches
+            {
+                Name = "Match 1",
+                StartData = "2024-08-15",
+                EndData = "2024-08-15",
+                TotalPoints = 0,
+                TeamId = team1.Id,
+                TournamentId = tournament1.Id
+            };
+            context.Matches.Add(matches1);
+
+            var ranking1 = new Ranking
+            {
+                TotalPoints = 100,
+                TournamentId = tournament1.Id,
+                UserId = user.Id
+            };
+            context.Rankings.Add(ranking1);
+
+            context.SaveChanges();
         }
-
-        var list = new Matches();
-        list.Title = "List 1";
-        list.Items.Add(new Matches
-        {
-            Title = "Item 1.1"
-        });
-
-        context.Matches.Add(list);
-
-        // Veel andmeid
-
-        context.SaveChanges();
     }
 }
-public static void Generate(ApplicationDbContext context, UserManager<IdentityUser> userManager)
-{
-    if (context.Matches.Any())
-    {
-        return;
-    }
-
-    var user = new IdentityUser
-    {
-        UserName = "newuser@example.com",
-        Email = "newuser@example.com",
-        NormalizedUserName = "NEWUSER@EXAMPLE.COM",
-        NormalizedEmail = "NEWUSER@EXAMPLE.COM"
-    };
-
-
-    userManager.CreateAsync(user, "Password123!").Wait();
- 
-    var tournament1 = new Tournament();
-    tournament1.Name = "Bundesliga";
-    tournament1.StartData = DataSetDateTime;
-    tournament1.EndData = DataSetDateTime;
-    tournament1.Description = "Football Match in German, 22 players are playing";
-
-    var team1 = new Team();
-    team1.Name = "Francfurt Eintraht";
-    team1.Match = "Match1";
-
-    var ranking1 = Ranking();
-    ranking1.TotalPoints = InputText;

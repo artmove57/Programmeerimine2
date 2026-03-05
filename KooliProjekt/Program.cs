@@ -49,10 +49,11 @@ namespace KooliProjekt
 
 #if DEBUG
             using (var scope = app.Services.CreateScope())
-            using (var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>())
             {
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
                 context.Database.EnsureCreated();
-                SeedData.Generate(context);
+                SeedData.Generate(context, userManager);
             }
 #endif
 

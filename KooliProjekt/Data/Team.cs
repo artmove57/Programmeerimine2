@@ -4,7 +4,14 @@
     {
         public int Id { get; set; }
         public string Name { get; set; }
-        public string Match { get; set; }
+
+        // Navigational property
+        public ICollection<Matches> Matches { get; set; }
+
+        public Team()
+        {
+            Matches = new List<Matches>();
+        }
     }
 }
 
