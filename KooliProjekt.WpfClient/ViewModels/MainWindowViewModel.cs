@@ -1,11 +1,10 @@
 using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using KooliProjekt.WpfClient.API;
+using KooliProjekt.WpfClient.Base;
 using KooliProjekt.WpfClient.Commands;
 using KooliProjekt.WpfClient.Models;
 
@@ -13,13 +12,13 @@ namespace KooliProjekt.WpfClient.ViewModels
 {
     /// <summary>
     /// MainWindowViewModel - koordineerib MainWindow tööd
-    /// Implementeerib INotifyPropertyChanged, et UI saaks muudatustest teada
+    /// Extendib NotifyPropertyChangedBase, et UI saaks muudatustest teada
     /// </summary>
-    public class MainWindowViewModel : INotifyPropertyChanged
+    public class MainWindowViewModel : NotifyPropertyChangedBase
     {
         private readonly ApiClient _apiClient;
-        private Team _selectedTeam;
-        private string _statusMessage;
+        private Team? _selectedTeam;
+        private string _statusMessage = "Valmis";
 
         #region Properties
 
@@ -30,17 +29,27 @@ namespace KooliProjekt.WpfClient.ViewModels
 
         /// <summary>
         /// Valitud meeskond (seotud DataGrid'i SelectedItem'iga)
+        /// OLULINE: Two-way binding võimaldab muudatusi mõlemas suunas
         /// </summary>
-        public Team SelectedTeam
+        public Team? SelectedTeam
         {
             get => _selectedTeam;
             set
             {
-                _selectedTeam = value;
-                OnPropertyChanged();
-                // Kui valitakse meeskond, uuenda commandide staatust
-                SaveCommand.RaiseCanExecuteChanged();
-                DeleteCommand.RaiseCanExecuteChanged();
+                if (SetProperty(ref _selectedTeam, value))
+                {
+                    // Kui valitakse meeskond, uuenda commandide staatust
+                    SaveCommand.RaiseCanExecuteChanged();
+                    DeleteCommand.RaiseCanExecuteChanged();
+
+                    // Kui valitakse uus meeskond, uuenda olekuriba
+                    if (value != null)
+                    {
+                        StatusMessage = value.Id == 0 
+                            ? "Uue meeskonna loomine..." 
+                            : $"Valitud: {value.Name}";
+                    }
+                }
             }
         }
 
@@ -50,11 +59,7 @@ namespace KooliProjekt.WpfClient.ViewModels
         public string StatusMessage
         {
             get => _statusMessage;
-            set
-            {
-                _statusMessage = value;
-                OnPropertyChanged();
-            }
+            set => SetProperty(ref _statusMessage, value);
         }
 
         #endregion
@@ -68,6 +73,7 @@ namespace KooliProjekt.WpfClient.ViewModels
 
         /// <summary>
         /// Command uue meeskonna loomiseks
+        /// OLULINE: Loob uue tühja objekti ja lisab kollektsiooni
         /// </summary>
         public RelayCommand NewCommand { get; set; }
 
@@ -95,7 +101,7 @@ namespace KooliProjekt.WpfClient.ViewModels
             InitializeCommands();
 
             // Laadi andmed automaatselt
-            LoadDataAsync();
+            _ = LoadDataAsync();
         }
 
         private void InitializeCommands()
@@ -107,6 +113,7 @@ namespace KooliProjekt.WpfClient.ViewModels
             );
 
             // NewCommand - loob uue tühja meeskonna
+            // OLULINE: Lisab uue objekti kollektsiooni ja valib selle
             NewCommand = new RelayCommand(
                 execute: _ => CreateNewTeam(),
                 canExecute: _ => true
@@ -115,7 +122,8 @@ namespace KooliProjekt.WpfClient.ViewModels
             // SaveCommand - salvestab meeskonna (uus või uuendatud)
             SaveCommand = new RelayCommand(
                 execute: async _ => await SaveTeamAsync(),
-                canExecute: _ => SelectedTeam != null && !string.IsNullOrWhiteSpace(SelectedTeam.Name)
+                canExecute: _ => SelectedTeam != null && 
+                                !string.IsNullOrWhiteSpace(SelectedTeam.Name)
             );
 
             // DeleteCommand - kustutab valitud meeskonna
@@ -135,9 +143,9 @@ namespace KooliProjekt.WpfClient.ViewModels
             try
             {
                 StatusMessage = "Laadin andmeid...";
-                
+
                 var teams = await _apiClient.GetAllAsync();
-                
+
                 Teams.Clear();
                 foreach (var team in teams)
                 {
@@ -156,18 +164,26 @@ namespace KooliProjekt.WpfClient.ViewModels
 
         /// <summary>
         /// Loo uus tühi meeskond
+        /// OLULINE: Lisab uue objekti kollektsiooni JA valib selle automaatselt
+        /// See võimaldab kasutajal kohe hakata sisestama andmeid
         /// </summary>
         private void CreateNewTeam()
         {
+            // Loo uus tühi meeskond
             var newTeam = new Team
             {
-                Id = 0,
+                Id = 0,  // 0 tähendab, et see on uus objekt (pole veel salvestatud)
                 Name = string.Empty
             };
 
+            // Lisa kollektsiooni
             Teams.Add(newTeam);
+
+            // OLULINE: Vali see automaatselt
+            // See käivitab SelectedTeam setter'i, mis uuendab commandide staatust
             SelectedTeam = newTeam;
-            StatusMessage = "Uue meeskonna loomine...";
+
+            StatusMessage = "Uue meeskonna loomine - sisesta nimi ja vajuta Salvesta";
         }
 
         /// <summary>
@@ -193,15 +209,18 @@ namespace KooliProjekt.WpfClient.ViewModels
                     // CREATE - uus meeskond
                     StatusMessage = "Salvestan uut meeskonda...";
                     var createdTeam = await _apiClient.CreateAsync(SelectedTeam);
-                    
-                    // Asenda ajutine meeskond loodud meeskonnaga
+
+                    // Asenda ajutine meeskond loodud meeskonnaga (koos ID'ga)
                     var index = Teams.IndexOf(SelectedTeam);
-                    Teams[index] = createdTeam;
-                    SelectedTeam = createdTeam;
+                    if (index >= 0)
+                    {
+                        Teams[index] = createdTeam;
+                        SelectedTeam = createdTeam;
+                    }
 
                     MessageBox.Show($"Meeskond '{createdTeam.Name}' edukalt loodud!", 
                         "Õnnestus", MessageBoxButton.OK, MessageBoxImage.Information);
-                    
+
                     StatusMessage = $"Meeskond '{createdTeam.Name}' loodud - {DateTime.Now:HH:mm:ss}";
                 }
                 else
@@ -212,7 +231,7 @@ namespace KooliProjekt.WpfClient.ViewModels
 
                     MessageBox.Show($"Meeskond '{SelectedTeam.Name}' edukalt uuendatud!", 
                         "Õnnestus", MessageBoxButton.OK, MessageBoxImage.Information);
-                    
+
                     StatusMessage = $"Meeskond '{SelectedTeam.Name}' uuendatud - {DateTime.Now:HH:mm:ss}";
                 }
 
@@ -248,7 +267,7 @@ namespace KooliProjekt.WpfClient.ViewModels
             try
             {
                 StatusMessage = $"Kustutan meeskonda '{SelectedTeam.Name}'...";
-                
+
                 await _apiClient.DeleteAsync(SelectedTeam.Id);
 
                 MessageBox.Show($"Meeskond '{SelectedTeam.Name}' edukalt kustutatud!", 
@@ -266,17 +285,6 @@ namespace KooliProjekt.WpfClient.ViewModels
                 MessageBox.Show($"Viga kustutamisel:\n{ex.Message}", 
                     "Viga", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-
-        #endregion
-
-        #region INotifyPropertyChanged
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         #endregion
