@@ -139,6 +139,133 @@ namespace KooliProjekt.UnitTests.ControllerTests
         }
 
         [Fact]
+        public async Task CreatePost_SavesTeamAndRedirects_WhenModelStateIsValid()
+        {
+            // Arrange
+            var team = new Team { Id = 0, Name = "New Team" };
+            _mockService.Setup(s => s.Save(team))
+                       .Returns(Task.CompletedTask)
+                       .Verifiable();
+
+            // Act
+            var result = await _controller.Create(team);
+
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirectResult.ActionName);
+            _mockService.VerifyAll();
+        }
+
+        [Fact]
+        public async Task CreatePost_ReturnsViewWithModel_WhenModelStateIsInvalid()
+        {
+            // Arrange
+            var team = new Team { Id = 0, Name = "" };
+            _controller.ModelState.AddModelError("Name", "Name is required");
+
+            // Act
+            var result = await _controller.Create(team);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            Assert.Equal(team, viewResult.Model);
+        }
+
+        [Fact]
+        public async Task Edit_ReturnsNotFound_WhenIdIsNull()
+        {
+            // Arrange
+            int? id = null;
+
+            // Act
+            var result = await _controller.Edit(id);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public async Task Edit_ReturnsNotFound_WhenTeamNotFound()
+        {
+            // Arrange
+            int? id = 1;
+            _mockService.Setup(s => s.Get(id.Value))
+                       .ReturnsAsync((Team)null);
+
+            // Act
+            var result = await _controller.Edit(id);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public async Task Edit_ReturnsViewResult_WithTeam_WhenTeamFound()
+        {
+            // Arrange
+            int? id = 1;
+            var team = new Team { Id = id.Value, Name = "Test Team" };
+            _mockService.Setup(s => s.Get(id.Value))
+                       .ReturnsAsync(team);
+
+            // Act
+            var result = await _controller.Edit(id);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            Assert.Equal(team, viewResult.Model);
+        }
+
+        [Fact]
+        public async Task EditPost_ReturnsNotFound_WhenIdMismatch()
+        {
+            // Arrange
+            int id = 1;
+            var team = new Team { Id = 2, Name = "Test Team" };
+
+            // Act
+            var result = await _controller.Edit(id, team);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public async Task EditPost_SavesTeamAndRedirects_WhenModelStateIsValid()
+        {
+            // Arrange
+            int id = 1;
+            var team = new Team { Id = id, Name = "Updated Team" };
+            _mockService.Setup(s => s.Save(team))
+                       .Returns(Task.CompletedTask)
+                       .Verifiable();
+
+            // Act
+            var result = await _controller.Edit(id, team);
+
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirectResult.ActionName);
+            _mockService.VerifyAll();
+        }
+
+        [Fact]
+        public async Task EditPost_ReturnsViewWithModel_WhenModelStateIsInvalid()
+        {
+            // Arrange
+            int id = 1;
+            var team = new Team { Id = id, Name = "" };
+            _controller.ModelState.AddModelError("Name", "Name is required");
+
+            // Act
+            var result = await _controller.Edit(id, team);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            Assert.Equal(team, viewResult.Model);
+        }
+
+        [Fact]
         public async Task Delete_ReturnsNotFound_WhenIdIsNull()
         {
             // Arrange
@@ -182,6 +309,24 @@ namespace KooliProjekt.UnitTests.ControllerTests
             var viewResult = Assert.IsType<ViewResult>(result);
             Assert.True(string.IsNullOrEmpty(viewResult.ViewName) || viewResult.ViewName == "Delete");
             Assert.Equal(team, viewResult.Model);
+        }
+
+        [Fact]
+        public async Task DeleteConfirmed_DeletesTeamAndRedirects()
+        {
+            // Arrange
+            int id = 1;
+            _mockService.Setup(s => s.Delete(id))
+                       .Returns(Task.CompletedTask)
+                       .Verifiable();
+
+            // Act
+            var result = await _controller.DeleteConfirmed(id);
+
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirectResult.ActionName);
+            _mockService.VerifyAll();
         }
     }
 }

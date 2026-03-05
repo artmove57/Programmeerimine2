@@ -213,5 +213,105 @@ namespace KooliProjekt.UnitTests.ControllerTests
             Assert.True(string.IsNullOrEmpty(viewResult.ViewName) || viewResult.ViewName == "Delete");
             Assert.Equal(tournament, viewResult.Model);
         }
+
+        [Fact]
+        public async Task CreatePost_SavesTournamentAndRedirects_WhenModelStateIsValid()
+        {
+            // Arrange
+            var tournament = new Tournament { Id = 0, Name = "New Tournament", Description = "Test", StartData = "2024-01-01", EndData = "2024-12-31" };
+            _mockService.Setup(s => s.Save(tournament))
+                       .Returns(Task.CompletedTask)
+                       .Verifiable();
+
+            // Act
+            var result = await _controller.Create(tournament);
+
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirectResult.ActionName);
+            _mockService.VerifyAll();
+        }
+
+        [Fact]
+        public async Task CreatePost_ReturnsViewWithModel_WhenModelStateIsInvalid()
+        {
+            // Arrange
+            var tournament = new Tournament { Id = 0, Name = "", Description = "", StartData = "", EndData = "" };
+            _controller.ModelState.AddModelError("Name", "Name is required");
+
+            // Act
+            var result = await _controller.Create(tournament);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            Assert.Equal(tournament, viewResult.Model);
+        }
+
+        [Fact]
+        public async Task EditPost_ReturnsNotFound_WhenIdMismatch()
+        {
+            // Arrange
+            int id = 1;
+            var tournament = new Tournament { Id = 2, Name = "Test Tournament", Description = "Test", StartData = "2024-01-01", EndData = "2024-12-31" };
+
+            // Act
+            var result = await _controller.Edit(id, tournament);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public async Task EditPost_SavesTournamentAndRedirects_WhenModelStateIsValid()
+        {
+            // Arrange
+            int id = 1;
+            var tournament = new Tournament { Id = id, Name = "Updated Tournament", Description = "Updated", StartData = "2024-01-01", EndData = "2024-12-31" };
+            _mockService.Setup(s => s.Save(tournament))
+                       .Returns(Task.CompletedTask)
+                       .Verifiable();
+
+            // Act
+            var result = await _controller.Edit(id, tournament);
+
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirectResult.ActionName);
+            _mockService.VerifyAll();
+        }
+
+        [Fact]
+        public async Task EditPost_ReturnsViewWithModel_WhenModelStateIsInvalid()
+        {
+            // Arrange
+            int id = 1;
+            var tournament = new Tournament { Id = id, Name = "", Description = "", StartData = "", EndData = "" };
+            _controller.ModelState.AddModelError("Name", "Name is required");
+
+            // Act
+            var result = await _controller.Edit(id, tournament);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            Assert.Equal(tournament, viewResult.Model);
+        }
+
+        [Fact]
+        public async Task DeleteConfirmed_DeletesTournamentAndRedirects()
+        {
+            // Arrange
+            int id = 1;
+            _mockService.Setup(s => s.Delete(id))
+                       .Returns(Task.CompletedTask)
+                       .Verifiable();
+
+            // Act
+            var result = await _controller.DeleteConfirmed(id);
+
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirectResult.ActionName);
+            _mockService.VerifyAll();
+        }
     }
 }

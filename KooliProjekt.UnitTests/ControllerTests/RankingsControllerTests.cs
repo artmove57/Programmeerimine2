@@ -10,48 +10,50 @@ using Xunit;
 
 namespace KooliProjekt.UnitTests.ControllerTests
 {
-    public class PredictionsControllerTests2
+    public class RankingsControllerTests
     {
-        private readonly Mock<IPredictionService> _mockService;
-        private readonly PredictionsController _controller;
+        private readonly Mock<IRankingService> _mockService;
+        private readonly RankingsController _controller;
 
-        public PredictionsControllerTests2()
+        public RankingsControllerTests()
         {
-            _mockService = new Mock<IPredictionService>();
-            _controller = new PredictionsController(_mockService.Object);
+            _mockService = new Mock<IRankingService>();
+            _controller = new RankingsController(_mockService.Object);
         }
 
         [Fact]
-        public async Task Index_ReturnsViewResult_WithPredictionsIndexModel()
+        public async Task Index_ReturnsViewResult_WithRankingsIndexModel()
         {
             // Arrange
-            var expectedData = new PagedResult<Prediction>
+            var expectedData = new PagedResult<Ranking>
             {
-                Results = new List<Prediction>
+                Results = new List<Ranking>
                 {
-                    new Prediction 
+                    new Ranking 
                     { 
                         Id = 1, 
-                        Matches = new Matches 
+                        TotalPoints = 100,
+                        Tournament = new Tournament 
                         { 
                             Id = 1, 
-                            Name = "Match 1",
+                            Name = "Premier League",
+                            Description = "English League",
                             StartData = "2024-01-01",
-                            EndData = "2024-01-01",
-                            TotalPoints = 10
+                            EndData = "2024-12-31"
                         },
                         User = new IdentityUser { Id = "user1", Email = "user1@example.com" }
                     },
-                    new Prediction 
+                    new Ranking 
                     { 
                         Id = 2, 
-                        Matches = new Matches 
+                        TotalPoints = 200,
+                        Tournament = new Tournament 
                         { 
                             Id = 2, 
-                            Name = "Match 2",
-                            StartData = "2024-01-02",
-                            EndData = "2024-01-02",
-                            TotalPoints = 20
+                            Name = "La Liga",
+                            Description = "Spanish League",
+                            StartData = "2024-01-01",
+                            EndData = "2024-12-31"
                         },
                         User = new IdentityUser { Id = "user2", Email = "user2@example.com" }
                     }
@@ -62,7 +64,7 @@ namespace KooliProjekt.UnitTests.ControllerTests
                 RowCount = 2
             };
 
-            _mockService.Setup(s => s.List(1, 5, It.IsAny<PredictionsSearch>()))
+            _mockService.Setup(s => s.List(1, 5, It.IsAny<RankingsSearch>()))
                       .ReturnsAsync(expectedData);
 
             // Act
@@ -70,31 +72,32 @@ namespace KooliProjekt.UnitTests.ControllerTests
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(result);
-            var model = Assert.IsType<PredictionsIndexModel>(viewResult.Model);
+            var model = Assert.IsType<RankingsIndexModel>(viewResult.Model);
             Assert.NotNull(model.Data);
             Assert.Equal(2, model.Data.Results.Count);
             Assert.NotNull(model.Search);
         }
 
         [Fact]
-        public async Task Index_ReturnsViewResult_WithMatchNameSearchFilter()
+        public async Task Index_ReturnsViewResult_WithTournamentNameSearchFilter()
         {
             // Arrange
-            var search = new PredictionsSearch { MatchName = "Final" };
-            var expectedData = new PagedResult<Prediction>
+            var search = new RankingsSearch { TournamentName = "Premier" };
+            var expectedData = new PagedResult<Ranking>
             {
-                Results = new List<Prediction>
+                Results = new List<Ranking>
                 {
-                    new Prediction 
+                    new Ranking 
                     { 
                         Id = 1, 
-                        Matches = new Matches 
+                        TotalPoints = 100,
+                        Tournament = new Tournament 
                         { 
                             Id = 1, 
-                            Name = "Final Match",
+                            Name = "Premier League",
+                            Description = "English League",
                             StartData = "2024-01-01",
-                            EndData = "2024-01-01",
-                            TotalPoints = 10
+                            EndData = "2024-12-31"
                         },
                         User = new IdentityUser { Id = "user1", Email = "user1@example.com" }
                     }
@@ -113,30 +116,31 @@ namespace KooliProjekt.UnitTests.ControllerTests
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(result);
-            var model = Assert.IsType<PredictionsIndexModel>(viewResult.Model);
+            var model = Assert.IsType<RankingsIndexModel>(viewResult.Model);
             Assert.Equal(1, model.Data.Results.Count);
-            Assert.Equal("Final", model.Search.MatchName);
+            Assert.Equal("Premier", model.Search.TournamentName);
         }
 
         [Fact]
         public async Task Index_ReturnsViewResult_WithUserEmailSearchFilter()
         {
             // Arrange
-            var search = new PredictionsSearch { UserEmail = "john" };
-            var expectedData = new PagedResult<Prediction>
+            var search = new RankingsSearch { UserEmail = "john" };
+            var expectedData = new PagedResult<Ranking>
             {
-                Results = new List<Prediction>
+                Results = new List<Ranking>
                 {
-                    new Prediction 
+                    new Ranking 
                     { 
                         Id = 1, 
-                        Matches = new Matches 
+                        TotalPoints = 100,
+                        Tournament = new Tournament 
                         { 
                             Id = 1, 
-                            Name = "Match 1",
+                            Name = "Premier League",
+                            Description = "English League",
                             StartData = "2024-01-01",
-                            EndData = "2024-01-01",
-                            TotalPoints = 10
+                            EndData = "2024-12-31"
                         },
                         User = new IdentityUser { Id = "user1", Email = "john@example.com" }
                     }
@@ -155,9 +159,52 @@ namespace KooliProjekt.UnitTests.ControllerTests
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(result);
-            var model = Assert.IsType<PredictionsIndexModel>(viewResult.Model);
+            var model = Assert.IsType<RankingsIndexModel>(viewResult.Model);
             Assert.Equal(1, model.Data.Results.Count);
             Assert.Equal("john", model.Search.UserEmail);
+        }
+
+        [Fact]
+        public async Task Index_ReturnsViewResult_WithMinPointsSearchFilter()
+        {
+            // Arrange
+            var search = new RankingsSearch { MinPoints = 150 };
+            var expectedData = new PagedResult<Ranking>
+            {
+                Results = new List<Ranking>
+                {
+                    new Ranking 
+                    { 
+                        Id = 1, 
+                        TotalPoints = 200,
+                        Tournament = new Tournament 
+                        { 
+                            Id = 1, 
+                            Name = "Premier League",
+                            Description = "English League",
+                            StartData = "2024-01-01",
+                            EndData = "2024-12-31"
+                        },
+                        User = new IdentityUser { Id = "user1", Email = "user1@example.com" }
+                    }
+                },
+                CurrentPage = 1,
+                PageCount = 1,
+                PageSize = 5,
+                RowCount = 1
+            };
+
+            _mockService.Setup(s => s.List(1, 5, search))
+                      .ReturnsAsync(expectedData);
+
+            // Act
+            var result = await _controller.Index(1, search);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<RankingsIndexModel>(viewResult.Model);
+            Assert.Equal(1, model.Data.Results.Count);
+            Assert.Equal(150, model.Search.MinPoints);
         }
 
         [Fact]
@@ -174,12 +221,12 @@ namespace KooliProjekt.UnitTests.ControllerTests
         }
 
         [Fact]
-        public async Task Details_ReturnsNotFound_WhenPredictionNotFound()
+        public async Task Details_ReturnsNotFound_WhenRankingNotFound()
         {
             // Arrange
             int? id = 1;
             _mockService.Setup(s => s.Get(id.Value))
-                       .ReturnsAsync((Prediction)null);
+                       .ReturnsAsync((Ranking)null);
 
             // Act
             var result = await _controller.Details(id);
@@ -189,25 +236,26 @@ namespace KooliProjekt.UnitTests.ControllerTests
         }
 
         [Fact]
-        public async Task Details_ReturnsViewResult_WithPrediction_WhenPredictionFound()
+        public async Task Details_ReturnsViewResult_WithRanking_WhenRankingFound()
         {
             // Arrange
             int? id = 1;
-            var prediction = new Prediction 
+            var ranking = new Ranking 
             { 
                 Id = id.Value, 
-                Matches = new Matches 
+                TotalPoints = 100,
+                Tournament = new Tournament 
                 { 
                     Id = 1, 
-                    Name = "Test Match",
+                    Name = "Test Tournament",
+                    Description = "Test",
                     StartData = "2024-01-01",
-                    EndData = "2024-01-01",
-                    TotalPoints = 10
+                    EndData = "2024-12-31"
                 },
                 User = new IdentityUser { Id = "user1", Email = "test@example.com" }
             };
             _mockService.Setup(s => s.Get(id.Value))
-                       .ReturnsAsync(prediction);
+                       .ReturnsAsync(ranking);
 
             // Act
             var result = await _controller.Details(id);
@@ -215,15 +263,15 @@ namespace KooliProjekt.UnitTests.ControllerTests
             // Assert
             var viewResult = Assert.IsType<ViewResult>(result);
             Assert.True(string.IsNullOrEmpty(viewResult.ViewName) || viewResult.ViewName == "Details");
-            Assert.Equal(prediction, viewResult.Model);
+            Assert.Equal(ranking, viewResult.Model);
         }
 
         [Fact]
         public async Task Create_ReturnsViewResult()
         {
             // Arrange
-            _mockService.Setup(s => s.GetMatchesSelectList(null))
-                       .ReturnsAsync(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(new List<Matches>(), "Id", "Name"));
+            _mockService.Setup(s => s.GetTournamentsSelectList(null))
+                       .ReturnsAsync(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(new List<Tournament>(), "Id", "Name"));
             _mockService.Setup(s => s.GetUsersSelectList(null))
                        .ReturnsAsync(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(new List<IdentityUser>(), "Id", "Email"));
 
@@ -249,12 +297,12 @@ namespace KooliProjekt.UnitTests.ControllerTests
         }
 
         [Fact]
-        public async Task Delete_ReturnsNotFound_WhenPredictionNotFound()
+        public async Task Delete_ReturnsNotFound_WhenRankingNotFound()
         {
             // Arrange
             int? id = 1;
             _mockService.Setup(s => s.Get(id.Value))
-                       .ReturnsAsync((Prediction)null);
+                       .ReturnsAsync((Ranking)null);
 
             // Act
             var result = await _controller.Delete(id);
@@ -264,25 +312,26 @@ namespace KooliProjekt.UnitTests.ControllerTests
         }
 
         [Fact]
-        public async Task Delete_ReturnsViewResult_WithPrediction_WhenPredictionFound()
+        public async Task Delete_ReturnsViewResult_WithRanking_WhenRankingFound()
         {
             // Arrange
             int? id = 1;
-            var prediction = new Prediction 
+            var ranking = new Ranking 
             { 
                 Id = id.Value, 
-                Matches = new Matches 
+                TotalPoints = 100,
+                Tournament = new Tournament 
                 { 
                     Id = 1, 
-                    Name = "Test Match",
+                    Name = "Test Tournament",
+                    Description = "Test",
                     StartData = "2024-01-01",
-                    EndData = "2024-01-01",
-                    TotalPoints = 10
+                    EndData = "2024-12-31"
                 },
                 User = new IdentityUser { Id = "user1", Email = "test@example.com" }
             };
             _mockService.Setup(s => s.Get(id.Value))
-                       .ReturnsAsync(prediction);
+                       .ReturnsAsync(ranking);
 
             // Act
             var result = await _controller.Delete(id);
@@ -290,20 +339,20 @@ namespace KooliProjekt.UnitTests.ControllerTests
             // Assert
             var viewResult = Assert.IsType<ViewResult>(result);
             Assert.True(string.IsNullOrEmpty(viewResult.ViewName) || viewResult.ViewName == "Delete");
-            Assert.Equal(prediction, viewResult.Model);
+            Assert.Equal(ranking, viewResult.Model);
         }
 
         [Fact]
-        public async Task CreatePost_SavesPredictionAndRedirects_WhenModelStateIsValid()
+        public async Task CreatePost_SavesRankingAndRedirects_WhenModelStateIsValid()
         {
             // Arrange
-            var prediction = new Prediction { Id = 0, MatchesId = 1, UserId = "user1" };
-            _mockService.Setup(s => s.Save(prediction))
+            var ranking = new Ranking { Id = 0, TotalPoints = 100, TournamentId = 1, UserId = "user1" };
+            _mockService.Setup(s => s.Save(ranking))
                        .Returns(Task.CompletedTask)
                        .Verifiable();
 
             // Act
-            var result = await _controller.Create(prediction);
+            var result = await _controller.Create(ranking);
 
             // Assert
             var redirectResult = Assert.IsType<RedirectToActionResult>(result);
@@ -315,19 +364,19 @@ namespace KooliProjekt.UnitTests.ControllerTests
         public async Task CreatePost_ReturnsViewWithModel_WhenModelStateIsInvalid()
         {
             // Arrange
-            var prediction = new Prediction { Id = 0, MatchesId = 0, UserId = "" };
-            _controller.ModelState.AddModelError("MatchesId", "Match is required");
-            _mockService.Setup(s => s.GetMatchesSelectList(It.IsAny<int?>()))
-                       .ReturnsAsync(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(new List<Matches>(), "Id", "Name"));
+            var ranking = new Ranking { Id = 0, TotalPoints = 0, TournamentId = 0, UserId = "" };
+            _controller.ModelState.AddModelError("TournamentId", "Tournament is required");
+            _mockService.Setup(s => s.GetTournamentsSelectList(It.IsAny<int?>()))
+                       .ReturnsAsync(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(new List<Tournament>(), "Id", "Name"));
             _mockService.Setup(s => s.GetUsersSelectList(It.IsAny<string>()))
                        .ReturnsAsync(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(new List<IdentityUser>(), "Id", "Email"));
 
             // Act
-            var result = await _controller.Create(prediction);
+            var result = await _controller.Create(ranking);
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(result);
-            Assert.Equal(prediction, viewResult.Model);
+            Assert.Equal(ranking, viewResult.Model);
         }
 
         [Fact]
@@ -335,27 +384,27 @@ namespace KooliProjekt.UnitTests.ControllerTests
         {
             // Arrange
             int id = 1;
-            var prediction = new Prediction { Id = 2, MatchesId = 1, UserId = "user1" };
+            var ranking = new Ranking { Id = 2, TotalPoints = 100, TournamentId = 1, UserId = "user1" };
 
             // Act
-            var result = await _controller.Edit(id, prediction);
+            var result = await _controller.Edit(id, ranking);
 
             // Assert
             Assert.IsType<NotFoundResult>(result);
         }
 
         [Fact]
-        public async Task EditPost_SavesPredictionAndRedirects_WhenModelStateIsValid()
+        public async Task EditPost_SavesRankingAndRedirects_WhenModelStateIsValid()
         {
             // Arrange
             int id = 1;
-            var prediction = new Prediction { Id = id, MatchesId = 1, UserId = "user1" };
-            _mockService.Setup(s => s.Save(prediction))
+            var ranking = new Ranking { Id = id, TotalPoints = 200, TournamentId = 1, UserId = "user1" };
+            _mockService.Setup(s => s.Save(ranking))
                        .Returns(Task.CompletedTask)
                        .Verifiable();
 
             // Act
-            var result = await _controller.Edit(id, prediction);
+            var result = await _controller.Edit(id, ranking);
 
             // Assert
             var redirectResult = Assert.IsType<RedirectToActionResult>(result);
@@ -368,23 +417,23 @@ namespace KooliProjekt.UnitTests.ControllerTests
         {
             // Arrange
             int id = 1;
-            var prediction = new Prediction { Id = id, MatchesId = 0, UserId = "" };
-            _controller.ModelState.AddModelError("MatchesId", "Match is required");
-            _mockService.Setup(s => s.GetMatchesSelectList(It.IsAny<int?>()))
-                       .ReturnsAsync(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(new List<Matches>(), "Id", "Name"));
+            var ranking = new Ranking { Id = id, TotalPoints = 0, TournamentId = 0, UserId = "" };
+            _controller.ModelState.AddModelError("TournamentId", "Tournament is required");
+            _mockService.Setup(s => s.GetTournamentsSelectList(It.IsAny<int?>()))
+                       .ReturnsAsync(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(new List<Tournament>(), "Id", "Name"));
             _mockService.Setup(s => s.GetUsersSelectList(It.IsAny<string>()))
                        .ReturnsAsync(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(new List<IdentityUser>(), "Id", "Email"));
 
             // Act
-            var result = await _controller.Edit(id, prediction);
+            var result = await _controller.Edit(id, ranking);
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(result);
-            Assert.Equal(prediction, viewResult.Model);
+            Assert.Equal(ranking, viewResult.Model);
         }
 
         [Fact]
-        public async Task DeleteConfirmed_DeletesPredictionAndRedirects()
+        public async Task DeleteConfirmed_DeletesRankingAndRedirects()
         {
             // Arrange
             int id = 1;

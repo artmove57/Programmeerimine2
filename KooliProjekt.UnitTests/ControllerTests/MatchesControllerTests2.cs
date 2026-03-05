@@ -273,5 +273,113 @@ namespace KooliProjekt.UnitTests.ControllerTests
             Assert.True(string.IsNullOrEmpty(viewResult.ViewName) || viewResult.ViewName == "Delete");
             Assert.Equal(match, viewResult.Model);
         }
+
+        [Fact]
+        public async Task CreatePost_SavesMatchAndRedirects_WhenModelStateIsValid()
+        {
+            // Arrange
+            var match = new Matches { Id = 0, Name = "New Match", StartData = "2024-01-01", EndData = "2024-01-01", TotalPoints = 10, TeamId = 1, TournamentId = 1 };
+            _mockService.Setup(s => s.Save(match))
+                       .Returns(Task.CompletedTask)
+                       .Verifiable();
+
+            // Act
+            var result = await _controller.Create(match);
+
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirectResult.ActionName);
+            _mockService.VerifyAll();
+        }
+
+        [Fact]
+        public async Task CreatePost_ReturnsViewWithModel_WhenModelStateIsInvalid()
+        {
+            // Arrange
+            var match = new Matches { Id = 0, Name = "", StartData = "", EndData = "", TotalPoints = 0, TeamId = 1, TournamentId = 1 };
+            _controller.ModelState.AddModelError("Name", "Name is required");
+            _mockService.Setup(s => s.GetTeamsSelectList(It.IsAny<int?>()))
+                       .ReturnsAsync(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(new List<Team>(), "Id", "Name"));
+            _mockService.Setup(s => s.GetTournamentsSelectList(It.IsAny<int?>()))
+                       .ReturnsAsync(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(new List<Tournament>(), "Id", "Name"));
+
+            // Act
+            var result = await _controller.Create(match);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            Assert.Equal(match, viewResult.Model);
+        }
+
+        [Fact]
+        public async Task EditPost_ReturnsNotFound_WhenIdMismatch()
+        {
+            // Arrange
+            int id = 1;
+            var match = new Matches { Id = 2, Name = "Test Match", StartData = "2024-01-01", EndData = "2024-01-01", TotalPoints = 10, TeamId = 1, TournamentId = 1 };
+
+            // Act
+            var result = await _controller.Edit(id, match);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public async Task EditPost_SavesMatchAndRedirects_WhenModelStateIsValid()
+        {
+            // Arrange
+            int id = 1;
+            var match = new Matches { Id = id, Name = "Updated Match", StartData = "2024-01-01", EndData = "2024-01-01", TotalPoints = 20, TeamId = 1, TournamentId = 1 };
+            _mockService.Setup(s => s.Save(match))
+                       .Returns(Task.CompletedTask)
+                       .Verifiable();
+
+            // Act
+            var result = await _controller.Edit(id, match);
+
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirectResult.ActionName);
+            _mockService.VerifyAll();
+        }
+
+        [Fact]
+        public async Task EditPost_ReturnsViewWithModel_WhenModelStateIsInvalid()
+        {
+            // Arrange
+            int id = 1;
+            var match = new Matches { Id = id, Name = "", StartData = "", EndData = "", TotalPoints = 0, TeamId = 1, TournamentId = 1 };
+            _controller.ModelState.AddModelError("Name", "Name is required");
+            _mockService.Setup(s => s.GetTeamsSelectList(It.IsAny<int?>()))
+                       .ReturnsAsync(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(new List<Team>(), "Id", "Name"));
+            _mockService.Setup(s => s.GetTournamentsSelectList(It.IsAny<int?>()))
+                       .ReturnsAsync(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(new List<Tournament>(), "Id", "Name"));
+
+            // Act
+            var result = await _controller.Edit(id, match);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            Assert.Equal(match, viewResult.Model);
+        }
+
+        [Fact]
+        public async Task DeleteConfirmed_DeletesMatchAndRedirects()
+        {
+            // Arrange
+            int id = 1;
+            _mockService.Setup(s => s.Delete(id))
+                       .Returns(Task.CompletedTask)
+                       .Verifiable();
+
+            // Act
+            var result = await _controller.DeleteConfirmed(id);
+
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirectResult.ActionName);
+            _mockService.VerifyAll();
+        }
     }
 }
