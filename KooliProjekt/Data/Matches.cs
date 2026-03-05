@@ -1,5 +1,8 @@
-﻿namespace KooliProjekt.Data
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace KooliProjekt.Data
 {
+    [ExcludeFromCodeCoverage]
     public class Matches
     {
         public int Id { get; set; }

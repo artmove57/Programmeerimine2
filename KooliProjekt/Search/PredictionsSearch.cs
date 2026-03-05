@@ -1,5 +1,8 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace KooliProjekt.Search
 {
+    [ExcludeFromCodeCoverage]
     public class PredictionsSearch
     {
         public string MatchName { get; set; }

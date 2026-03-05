@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using System.Diagnostics.CodeAnalysis;
 
 namespace KooliProjekt.Data
 {
+    [ExcludeFromCodeCoverage]
     public class Prediction
     {
         public int Id { get; set; }
