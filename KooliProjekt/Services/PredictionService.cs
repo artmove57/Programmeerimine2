@@ -1,4 +1,5 @@
 using KooliProjekt.Data;
+using KooliProjekt.Search;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,11 +14,26 @@ namespace KooliProjekt.Services
             _context = context;
         }
 
-        public async Task<PagedResult<Prediction>> List(int page, int pageSize)
+        public async Task<PagedResult<Prediction>> List(int page, int pageSize, PredictionsSearch search)
         {
             var query = _context.Predictions
                 .Include(p => p.Matches)
-                .Include(p => p.User);
+                .Include(p => p.User)
+                .AsQueryable();
+
+            if (search != null)
+            {
+                if (!string.IsNullOrWhiteSpace(search.MatchName))
+                {
+                    query = query.Where(p => p.Matches.Name.Contains(search.MatchName));
+                }
+
+                if (!string.IsNullOrWhiteSpace(search.UserEmail))
+                {
+                    query = query.Where(p => p.User.Email.Contains(search.UserEmail));
+                }
+            }
+
             return await query.GetPagedAsync(page, pageSize);
         }
 

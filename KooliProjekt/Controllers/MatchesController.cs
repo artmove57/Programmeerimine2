@@ -1,4 +1,6 @@
 using KooliProjekt.Data;
+using KooliProjekt.Models;
+using KooliProjekt.Search;
 using KooliProjekt.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,10 +15,14 @@ namespace KooliProjekt.Controllers
             _matchesService = matchesService;
         }
 
-        public async Task<IActionResult> Index(int page = 1)
+        public async Task<IActionResult> Index(int page = 1, MatchesSearch search = null)
         {
-            var data = await _matchesService.List(page, 5);
-            return View(data);
+            var model = new MatchesIndexModel
+            {
+                Data = await _matchesService.List(page, 5, search),
+                Search = search ?? new MatchesSearch()
+            };
+            return View(model);
         }
 
         public async Task<IActionResult> Details(int? id)

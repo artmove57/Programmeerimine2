@@ -1,4 +1,5 @@
 using KooliProjekt.Data;
+using KooliProjekt.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace KooliProjekt.Services
@@ -12,9 +13,24 @@ namespace KooliProjekt.Services
             _context = context;
         }
 
-        public async Task<PagedResult<Tournament>> List(int page, int pageSize)
+        public async Task<PagedResult<Tournament>> List(int page, int pageSize, TournamentsSearch search)
         {
-            return await _context.Tournaments.GetPagedAsync(page, pageSize);
+            var query = _context.Tournaments.AsQueryable();
+
+            if (search != null)
+            {
+                if (!string.IsNullOrWhiteSpace(search.Name))
+                {
+                    query = query.Where(t => t.Name.Contains(search.Name));
+                }
+
+                if (!string.IsNullOrWhiteSpace(search.Description))
+                {
+                    query = query.Where(t => t.Description.Contains(search.Description));
+                }
+            }
+
+            return await query.GetPagedAsync(page, pageSize);
         }
 
         public async Task<Tournament> Get(int id)

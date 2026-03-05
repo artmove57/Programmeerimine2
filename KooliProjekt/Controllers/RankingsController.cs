@@ -1,4 +1,6 @@
 using KooliProjekt.Data;
+using KooliProjekt.Models;
+using KooliProjekt.Search;
 using KooliProjekt.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,10 +16,14 @@ namespace KooliProjekt.Controllers
         }
 
         // GET: Rankings
-        public async Task<IActionResult> Index(int page = 1)
+        public async Task<IActionResult> Index(int page = 1, RankingsSearch search = null)
         {
-            var data = await _rankingService.List(page, 5);
-            return View(data);
+            var model = new RankingsIndexModel
+            {
+                Data = await _rankingService.List(page, 5, search),
+                Search = search ?? new RankingsSearch()
+            };
+            return View(model);
         }
 
         // GET: Rankings/Details/5

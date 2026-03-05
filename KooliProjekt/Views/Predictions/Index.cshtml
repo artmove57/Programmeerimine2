@@ -1,14 +1,32 @@
-﻿@model PagedResult<KooliProjekt.Data.Prediction>
+﻿@model PredictionsIndexModel
 
 @{
     ViewData["Title"] = "Index";
 }
 
-<h1>Index</h1>
+<h1>Predictions</h1>
 
 <p>
     <a asp-action="Create">Create New</a>
 </p>
+
+<form method="get">
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label>Match Name</label>
+            <input type="text" name="search.MatchName" value="@Model.Search?.MatchName" class="form-control" placeholder="Search by match..." />
+        </div>
+        <div class="col-md-4">
+            <label>User Email</label>
+            <input type="text" name="search.UserEmail" value="@Model.Search?.UserEmail" class="form-control" placeholder="Search by user email..." />
+        </div>
+        <div class="col-md-2">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn btn-primary form-control">Search</button>
+        </div>
+    </div>
+</form>
+
 <table class="table">
     <thead>
         <tr>
@@ -22,7 +40,7 @@
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model.Results) {
+@foreach (var item in Model.Data.Results) {
         <tr>
             <td>
                 @Html.DisplayFor(modelItem => item.Matches.Name)
@@ -40,4 +58,4 @@
     </tbody>
 </table>
 
-@(await Component.InvokeAsync<PagerViewComponent>(Model))
+@(await Component.InvokeAsync<PagerViewComponent>(Model.Data))

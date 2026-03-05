@@ -1,4 +1,5 @@
 using KooliProjekt.Data;
+using KooliProjekt.Search;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,11 +14,31 @@ namespace KooliProjekt.Services
             _context = context;
         }
 
-        public async Task<PagedResult<Ranking>> List(int page, int pageSize)
+        public async Task<PagedResult<Ranking>> List(int page, int pageSize, RankingsSearch search)
         {
             var query = _context.Rankings
                 .Include(r => r.Tournament)
-                .Include(r => r.User);
+                .Include(r => r.User)
+                .AsQueryable();
+
+            if (search != null)
+            {
+                if (!string.IsNullOrWhiteSpace(search.TournamentName))
+                {
+                    query = query.Where(r => r.Tournament.Name.Contains(search.TournamentName));
+                }
+
+                if (!string.IsNullOrWhiteSpace(search.UserEmail))
+                {
+                    query = query.Where(r => r.User.Email.Contains(search.UserEmail));
+                }
+
+                if (search.MinPoints.HasValue)
+                {
+                    query = query.Where(r => r.TotalPoints >= search.MinPoints.Value);
+                }
+            }
+
             return await query.GetPagedAsync(page, pageSize);
         }
 

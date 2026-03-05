@@ -1,4 +1,6 @@
 ﻿using KooliProjekt.Data;
+using KooliProjekt.Models;
+using KooliProjekt.Search;
 using KooliProjekt.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,10 +16,14 @@ namespace KooliProjekt.Controllers
         }
 
         // GET: Teams
-        public async Task<IActionResult> Index(int page = 1)
+        public async Task<IActionResult> Index(int page = 1, TeamsSearch search = null)
         {
-            var data = await _teamService.List(page, 5);
-            return View(data);
+            var model = new TeamsIndexModel
+            {
+                Data = await _teamService.List(page, 5, search),
+                Search = search ?? new TeamsSearch()
+            };
+            return View(model);
         }
 
         // GET: Teams/Details/5

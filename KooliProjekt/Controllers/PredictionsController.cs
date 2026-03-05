@@ -1,4 +1,6 @@
 using KooliProjekt.Data;
+using KooliProjekt.Models;
+using KooliProjekt.Search;
 using KooliProjekt.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,10 +15,14 @@ namespace KooliProjekt.Controllers
             _predictionService = predictionService;
         }
 
-        public async Task<IActionResult> Index(int page = 1)
+        public async Task<IActionResult> Index(int page = 1, PredictionsSearch search = null)
         {
-            var data = await _predictionService.List(page, 5);
-            return View(data);
+            var model = new PredictionsIndexModel
+            {
+                Data = await _predictionService.List(page, 5, search),
+                Search = search ?? new PredictionsSearch()
+            };
+            return View(model);
         }
 
         public async Task<IActionResult> Details(int? id)

@@ -1,14 +1,36 @@
-﻿@model PagedResult<KooliProjekt.Data.Matches>
+﻿@model MatchesIndexModel
 
 @{
     ViewData["Title"] = "Index";
 }
 
-<h1>Index</h1>
+<h1>Matches</h1>
 
 <p>
     <a asp-action="Create">Create New</a>
 </p>
+
+<form method="get">
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <label>Match Name</label>
+            <input type="text" name="search.Name" value="@Model.Search?.Name" class="form-control" placeholder="Search by match name..." />
+        </div>
+        <div class="col-md-3">
+            <label>Team Name</label>
+            <input type="text" name="search.TeamName" value="@Model.Search?.TeamName" class="form-control" placeholder="Search by team..." />
+        </div>
+        <div class="col-md-3">
+            <label>Tournament Name</label>
+            <input type="text" name="search.TournamentName" value="@Model.Search?.TournamentName" class="form-control" placeholder="Search by tournament..." />
+        </div>
+        <div class="col-md-2">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn btn-primary form-control">Search</button>
+        </div>
+    </div>
+</form>
+
 <table class="table">
     <thead>
         <tr>
@@ -34,7 +56,7 @@
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model.Results) {
+@foreach (var item in Model.Data.Results) {
         <tr>
             <td>
                 @Html.DisplayFor(modelItem => item.Name)
@@ -64,4 +86,4 @@
     </tbody>
 </table>
 
-@(await Component.InvokeAsync<PagerViewComponent>(Model))
+@(await Component.InvokeAsync<PagerViewComponent>(Model.Data))
