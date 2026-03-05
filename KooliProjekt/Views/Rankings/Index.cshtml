@@ -1,4 +1,4 @@
-﻿@model IEnumerable<KooliProjekt.Data.Ranking>
+﻿@model PagedResult<KooliProjekt.Data.Ranking>
 
 @{
     ViewData["Title"] = "Index";
@@ -13,28 +13,28 @@
     <thead>
         <tr>
             <th>
-                @Html.DisplayNameFor(model => model.TotalPoints)
+                Total Points
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.Tournament)
+                Tournament
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.User)
+                User
             </th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
+@foreach (var item in Model.Results) {
         <tr>
             <td>
                 @Html.DisplayFor(modelItem => item.TotalPoints)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.Tournament.Id)
+                @Html.DisplayFor(modelItem => item.Tournament.Name)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.User.Id)
+                @Html.DisplayFor(modelItem => item.User.Email)
             </td>
             <td>
                 <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
@@ -45,3 +45,5 @@
 }
     </tbody>
 </table>
+
+@(await Component.InvokeAsync<PagerViewComponent>(Model))

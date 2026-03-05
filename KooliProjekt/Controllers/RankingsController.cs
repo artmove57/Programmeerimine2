@@ -19,10 +19,11 @@ namespace KooliProjekt.Controllers
         }
 
         // GET: Rankings
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int page = 1)
         {
             var applicationDbContext = _context.Rankings.Include(r => r.Tournament).Include(r => r.User);
-            return View(await applicationDbContext.ToListAsync());
+            var data = await applicationDbContext.GetPagedAsync(page, 5);
+            return View(data);
         }
 
         // GET: Rankings/Details/5
