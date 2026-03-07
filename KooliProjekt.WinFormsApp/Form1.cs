@@ -1,60 +1,115 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows.Forms;
 using KooliProjekt.WinFormsApp.API;
 using KooliProjekt.WinFormsApp.Models;
+using KooliProjekt.WinFormsApp.Presenters;
+using KooliProjekt.WinFormsApp.Views;
 
 namespace KooliProjekt.WinFormsApp;
 
-public partial class Form1 : Form
+/// <summary>
+/// Form1 - implements ITeamView interface for MVP pattern
+/// All business logic is in TeamPresenter
+/// </summary>
+public partial class Form1 : Form, ITeamView
 {
-    private readonly ApiClient _apiClient;
-    private List<Team> _teams;
+    private readonly TeamPresenter _presenter;
+    private List<Team> _teams = new List<Team>();
     private Team? _selectedTeam;
+
+    #region ITeamView Implementation
+
+    // Properties - exposed to Presenter
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public List<Team> Teams
+    {
+        get => _teams;
+        set
+        {
+            _teams = value;
+            dataGridView1.DataSource = null;
+            dataGridView1.DataSource = _teams;
+        }
+    }
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public Team? SelectedTeam
+    {
+        get => _selectedTeam;
+        set
+        {
+            _selectedTeam = value;
+            if (value != null)
+            {
+                TeamId = value.Id;
+                TeamName = value.Name;
+            }
+        }
+    }
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public int TeamId
+    {
+        get => int.TryParse(idTextBox.Text, out var id) ? id : 0;
+        set => idTextBox.Text = value.ToString();
+    }
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public string TeamName
+    {
+        get => nameTextBox.Text;
+        set => nameTextBox.Text = value;
+    }
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public string StatusMessage
+    {
+        get => statusLabel.Text;
+        set => statusLabel.Text = value;
+    }
+
+    // Events - raised by user actions
+    public event EventHandler? LoadRequested;
+    public event EventHandler? NewRequested;
+    public event EventHandler? SaveRequested;
+    public event EventHandler? DeleteRequested;
+
+    // Methods - called by Presenter
+    public void ShowError(string message)
+    {
+        MessageBox.Show(message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+    }
+
+    public void ShowSuccess(string message)
+    {
+        MessageBox.Show(message, "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    public void ClearForm()
+    {
+        idTextBox.Text = string.Empty;
+        nameTextBox.Text = string.Empty;
+        _selectedTeam = null;
+    }
+
+    #endregion
 
     public Form1()
     {
         InitializeComponent();
-        _apiClient = new ApiClient();
-        _teams = new List<Team>();
+
+        // Create Presenter
+        var apiClient = new ApiClient();
+        _presenter = new TeamPresenter(this, apiClient);
     }
 
-    // Form load event - load data from API
-    private async void Form1_Load(object sender, EventArgs e)
+    // Form load - trigger LoadRequested event
+    private void Form1_Load(object sender, EventArgs e)
     {
-        await LoadDataAsync();
-    }
-
-    // Load all teams from API
-    private async Task LoadDataAsync()
-    {
-        try
-        {
-            statusLabel.Text = "Loading data...";
-
-            var result = await _apiClient.GetAllAsync();
-
-            if (!result.IsSuccess)
-            {
-                statusLabel.Text = $"Error: {result.ErrorMessage}";
-                MessageBox.Show($"Error loading data:\n{result.ErrorMessage}", 
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            _teams = result.Data!;
-            dataGridView1.DataSource = null;
-            dataGridView1.DataSource = _teams;
-
-            statusLabel.Text = $"Loaded {_teams.Count} teams - {DateTime.Now:HH:mm:ss}";
-        }
-        catch (Exception ex)
-        {
-            statusLabel.Text = $"Error: {ex.Message}";
-            MessageBox.Show($"Unexpected error:\n{ex.Message}", 
-                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
+        LoadRequested?.Invoke(this, EventArgs.Empty);
     }
 
     // DataGridView selection changed
@@ -62,124 +117,33 @@ public partial class Form1 : Form
     {
         if (dataGridView1.CurrentRow?.DataBoundItem is Team team)
         {
-            _selectedTeam = team;
-            idTextBox.Text = team.Id.ToString();
-            nameTextBox.Text = team.Name;
-            statusLabel.Text = $"Selected: {team.Name}";
+            SelectedTeam = team;
+            StatusMessage = $"Selected: {team.Name}";
         }
     }
 
-    // NEW BUTTON: Create new team
-    // Hint: Create new Team object with Id=0, clear form, enable editing
+    // NEW BUTTON: Trigger NewRequested event (Presenter handles logic)
     private void NewButton_Click(object sender, EventArgs e)
     {
-        _selectedTeam = new Team 
-        { 
-            Id = 0, 
-            Name = string.Empty 
-        };
-
-        idTextBox.Text = "0";
-        nameTextBox.Text = string.Empty;
-        nameTextBox.Focus();
-
-        statusLabel.Text = "Creating new team - enter name and click Save";
+        NewRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    // SAVE BUTTON: Save team (Create or Update)
-    // Hint: If Id == 0 -> POST (Create), else PUT (Update)
-    private async void SaveButton_Click(object sender, EventArgs e)
+    // SAVE BUTTON: Trigger SaveRequested event (Presenter handles logic)
+    private void SaveButton_Click(object sender, EventArgs e)
     {
-        // Validate
-        if (string.IsNullOrWhiteSpace(nameTextBox.Text))
-        {
-            MessageBox.Show("Please enter team name!", 
-                "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-
-        try
-        {
-            // Get values from form
-            var teamId = int.Parse(idTextBox.Text);
-            var teamName = nameTextBox.Text.Trim();
-
-            if (teamId == 0)
-            {
-                // CREATE - new team
-                statusLabel.Text = "Saving new team...";
-
-                var newTeam = new Team 
-                { 
-                    Id = 0, 
-                    Name = teamName 
-                };
-
-                var result = await _apiClient.CreateAsync(newTeam);
-
-                if (!result.IsSuccess)
-                {
-                    statusLabel.Text = $"Error: {result.ErrorMessage}";
-                    MessageBox.Show($"Error creating team:\n{result.ErrorMessage}", 
-                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                MessageBox.Show($"Team '{result.Data!.Name}' created successfully!", 
-                    "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                statusLabel.Text = $"Team '{result.Data.Name}' created";
-            }
-            else
-            {
-                // UPDATE - existing team
-                statusLabel.Text = "Updating team...";
-
-                var teamToUpdate = new Team 
-                { 
-                    Id = teamId, 
-                    Name = teamName 
-                };
-
-                var result = await _apiClient.UpdateAsync(teamId, teamToUpdate);
-
-                if (!result.IsSuccess)
-                {
-                    statusLabel.Text = $"Error: {result.ErrorMessage}";
-                    MessageBox.Show($"Error updating team:\n{result.ErrorMessage}", 
-                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                MessageBox.Show($"Team '{teamName}' updated successfully!", 
-                    "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                statusLabel.Text = $"Team '{teamName}' updated";
-            }
-
-            // Reload data
-            await LoadDataAsync();
-        }
-        catch (Exception ex)
-        {
-            statusLabel.Text = $"Error: {ex.Message}";
-            MessageBox.Show($"Unexpected error:\n{ex.Message}", 
-                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
+        SaveRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    // DELETE BUTTON: Delete selected team
-    // Hint: Check if team is selected, ask confirmation, call DELETE API
-    private async void DeleteButton_Click(object sender, EventArgs e)
+    // DELETE BUTTON: Ask confirmation, then trigger DeleteRequested event
+    private void DeleteButton_Click(object sender, EventArgs e)
     {
         if (_selectedTeam == null || _selectedTeam.Id == 0)
         {
-            MessageBox.Show("Please select a team from the list!", 
-                "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            ShowError("Please select a team from the list!");
             return;
         }
 
-        // Ask for confirmation
+        // Ask for confirmation (View responsibility)
         var confirmResult = MessageBox.Show(
             $"Are you sure you want to delete team '{_selectedTeam.Name}'?",
             "Confirm Delete",
@@ -189,44 +153,13 @@ public partial class Form1 : Form
         if (confirmResult != DialogResult.Yes)
             return;
 
-        try
-        {
-            statusLabel.Text = $"Deleting team '{_selectedTeam.Name}'...";
-
-            var result = await _apiClient.DeleteAsync(_selectedTeam.Id);
-
-            if (!result.IsSuccess)
-            {
-                statusLabel.Text = $"Error: {result.ErrorMessage}";
-                MessageBox.Show($"Error deleting team:\n{result.ErrorMessage}", 
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            MessageBox.Show($"Team '{_selectedTeam.Name}' deleted successfully!", 
-                "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-            statusLabel.Text = $"Team deleted - {DateTime.Now:HH:mm:ss}";
-
-            // Clear form
-            idTextBox.Text = string.Empty;
-            nameTextBox.Text = string.Empty;
-            _selectedTeam = null;
-
-            // Reload data
-            await LoadDataAsync();
-        }
-        catch (Exception ex)
-        {
-            statusLabel.Text = $"Error: {ex.Message}";
-            MessageBox.Show($"Unexpected error:\n{ex.Message}", 
-                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
+        // Trigger event - Presenter handles the actual deletion
+        DeleteRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    // Refresh button
-    private async void RefreshButton_Click(object sender, EventArgs e)
+    // Refresh button - trigger LoadRequested event
+    private void RefreshButton_Click(object sender, EventArgs e)
     {
-        await LoadDataAsync();
+        LoadRequested?.Invoke(this, EventArgs.Empty);
     }
 }
