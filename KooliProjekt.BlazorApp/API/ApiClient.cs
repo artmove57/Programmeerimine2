@@ -222,6 +222,191 @@ namespace KooliProjekt.BlazorApp.API
                 return Result.Failure("Validation failed");
             }
         }
+
+        #region Matches Operations
+
+        /// <summary>
+        /// GET: All matches
+        /// </summary>
+        public async Task<Result<List<Match>>> GetAllMatchesAsync()
+        {
+            try
+            {
+                var matches = await _httpClient.GetFromJsonAsync<List<Match>>("MatchesApi");
+
+                if (matches == null)
+                {
+                    return Result<List<Match>>.Failure("API returned null");
+                }
+
+                return Result<List<Match>>.Success(matches);
+            }
+            catch (HttpRequestException ex)
+            {
+                return Result<List<Match>>.Failure($"Network error: {ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                return Result<List<Match>>.Failure($"Error loading matches: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// GET: One match by ID
+        /// </summary>
+        public async Task<Result<Match>> GetMatchByIdAsync(int id)
+        {
+            try
+            {
+                var match = await _httpClient.GetFromJsonAsync<Match>($"MatchesApi/{id}");
+
+                if (match == null)
+                {
+                    return Result<Match>.Failure($"Match with ID {id} not found");
+                }
+
+                return Result<Match>.Success(match);
+            }
+            catch (HttpRequestException ex)
+            {
+                return Result<Match>.Failure($"Network error: {ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                return Result<Match>.Failure($"Error loading match: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// POST: Create new match
+        /// </summary>
+        public async Task<Result<Match>> CreateMatchAsync(Match match)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync("MatchesApi", match);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    return await HandleValidationErrorAsync<Match>(response);
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                var createdMatch = await response.Content.ReadFromJsonAsync<Match>();
+
+                if (createdMatch == null)
+                {
+                    return Result<Match>.Failure("API did not return created match");
+                }
+
+                return Result<Match>.Success(createdMatch);
+            }
+            catch (HttpRequestException ex)
+            {
+                return Result<Match>.Failure($"Network error creating match: {ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                return Result<Match>.Failure($"Error creating match: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// PUT: Update existing match
+        /// </summary>
+        public async Task<Result> UpdateMatchAsync(int id, Match match)
+        {
+            try
+            {
+                var response = await _httpClient.PutAsJsonAsync($"MatchesApi/{id}", match);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    return await HandleValidationErrorAsync(response);
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                return Result.Success();
+            }
+            catch (HttpRequestException ex)
+            {
+                return Result.Failure($"Network error updating match: {ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure($"Error updating match: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// DELETE: Delete match
+        /// </summary>
+        public async Task<Result> DeleteMatchAsync(int id)
+        {
+            try
+            {
+                var response = await _httpClient.DeleteAsync($"MatchesApi/{id}");
+                response.EnsureSuccessStatusCode();
+
+                return Result.Success();
+            }
+            catch (HttpRequestException ex)
+            {
+                return Result.Failure($"Network error deleting match: {ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure($"Error deleting match: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// GET: Teams for dropdown
+        /// </summary>
+        public async Task<Result<List<Team>>> GetTeamsForDropdownAsync()
+        {
+            try
+            {
+                var teams = await _httpClient.GetFromJsonAsync<List<Team>>("MatchesApi/teams");
+
+                if (teams == null)
+                {
+                    return Result<List<Team>>.Failure("API returned null");
+                }
+
+                return Result<List<Team>>.Success(teams);
+            }
+            catch (Exception ex)
+            {
+                return Result<List<Team>>.Failure($"Error loading teams: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// GET: Tournaments for dropdown
+        /// </summary>
+        public async Task<Result<List<Tournament>>> GetTournamentsForDropdownAsync()
+        {
+            try
+            {
+                var tournaments = await _httpClient.GetFromJsonAsync<List<Tournament>>("MatchesApi/tournaments");
+
+                if (tournaments == null)
+                {
+                    return Result<List<Tournament>>.Failure("API returned null");
+                }
+
+                return Result<List<Tournament>>.Success(tournaments);
+            }
+            catch (Exception ex)
+            {
+                return Result<List<Tournament>>.Failure($"Error loading tournaments: {ex.Message}", ex);
+            }
+        }
+
+        #endregion
     }
 
     /// <summary>

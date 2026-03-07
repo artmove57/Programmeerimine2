@@ -1,0 +1,296 @@
+@page "/matches/edit/{Id:int}"
+@inject IApiClient ApiClient
+@inject NavigationManager Navigation
+@using KooliProjekt.BlazorApp.API
+@using KooliProjekt.BlazorApp.Models
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>@(Id == 0 ? "New Match" : "Edit Match")</PageTitle>
+
+<h1>@(Id == 0 ? "Create New Match" : $"Edit Match #{Id}")</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <EditForm EditContext="@editContext" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label for="id" class="form-label">ID:</label>
+                <input type="text" class="form-control" id="id" value="@match.Id" disabled />
+            </div>
+
+            <div class="mb-3">
+                <label for="name" class="form-label">Match Name:</label>
+                <InputText @bind-Value="match.Name" class="form-control" id="name" />
+                <ValidationMessage For="@(() => match.Name)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="startDate" class="form-label">Start Date:</label>
+                <InputText @bind-Value="match.StartData" class="form-control" id="startDate" placeholder="YYYY-MM-DD" />
+                <ValidationMessage For="@(() => match.StartData)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="endDate" class="form-label">End Date:</label>
+                <InputText @bind-Value="match.EndData" class="form-control" id="endDate" placeholder="YYYY-MM-DD" />
+                <ValidationMessage For="@(() => match.EndData)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="totalPoints" class="form-label">Total Points:</label>
+                <InputNumber @bind-Value="match.TotalPoints" class="form-control" id="totalPoints" />
+                <ValidationMessage For="@(() => match.TotalPoints)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="teamId" class="form-label">Team:</label>
+                <InputSelect @bind-Value="match.TeamId" class="form-select" id="teamId">
+                    <option value="0">-- Select Team --</option>
+                    @if (teams != null)
+                    {
+                        @foreach (var team in teams)
+                        {
+                            <option value="@team.Id">@team.Name</option>
+                        }
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => match.TeamId)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="tournamentId" class="form-label">Tournament:</label>
+                <InputSelect @bind-Value="match.TournamentId" class="form-select" id="tournamentId">
+                    <option value="0">-- Select Tournament --</option>
+                    @if (tournaments != null)
+                    {
+                        @foreach (var tournament in tournaments)
+                        {
+                            <option value="@tournament.Id">@tournament.Name</option>
+                        }
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => match.TournamentId)" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger">
+                    <h5>Errors:</h5>
+                    <p>@errorMessage</p>
+                </div>
+            }
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-success me-2" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Saving...</span>
+                    }
+                    else
+                    {
+                        <span class="bi bi-check-circle me-1"></span>
+                        <span>Save</span>
+                    }
+                </button>
+                <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                    <span class="bi bi-x-circle me-1"></span> Cancel
+                </button>
+            </div>
+        </EditForm>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-header">
+                <h5>Validation Rules</h5>
+            </div>
+            <div class="card-body">
+                <ul>
+                    <li><strong>Name:</strong> Required, 2-100 characters</li>
+                    <li><strong>Start Date:</strong> Required</li>
+                    <li><strong>End Date:</strong> Required</li>
+                    <li><strong>Total Points:</strong> 0-1000</li>
+                    <li><strong>Team:</strong> Required (select from dropdown)</li>
+                    <li><strong>Tournament:</strong> Required (select from dropdown)</li>
+                </ul>
+                <p class="text-muted mt-2">
+                    <small>
+                        ✅ Client-side validation (Blazor)<br />
+                        ✅ Server-side validation (API)
+                    </small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Match match = new();
+    private List<Team>? teams;
+    private List<Tournament>? tournaments;
+    private EditContext? editContext;
+    private ValidationMessageStore? messageStore;
+    private string? errorMessage;
+    private bool isSaving = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load dropdowns first
+        await LoadDropdownsAsync();
+
+        if (Id == 0)
+        {
+            // Create new match
+            match = new Match { Id = 0, Name = string.Empty };
+        }
+        else
+        {
+            // Load existing match
+            await LoadMatchAsync();
+        }
+
+        // Initialize EditContext and ValidationMessageStore
+        editContext = new EditContext(match);
+        messageStore = new ValidationMessageStore(editContext);
+        
+        // Clear validation messages when field changes
+        editContext.OnFieldChanged += (sender, args) =>
+        {
+            messageStore?.Clear(args.FieldIdentifier);
+            errorMessage = null;
+        };
+    }
+
+    private async Task LoadDropdownsAsync()
+    {
+        // Load teams
+        var teamsResult = await ApiClient.GetTeamsForDropdownAsync();
+        if (teamsResult.IsSuccess)
+        {
+            teams = teamsResult.Data;
+        }
+        else
+        {
+            teams = new List<Team>();
+            errorMessage = teamsResult.ErrorMessage;
+        }
+
+        // Load tournaments
+        var tournamentsResult = await ApiClient.GetTournamentsForDropdownAsync();
+        if (tournamentsResult.IsSuccess)
+        {
+            tournaments = tournamentsResult.Data;
+        }
+        else
+        {
+            tournaments = new List<Tournament>();
+            errorMessage = tournamentsResult.ErrorMessage;
+        }
+    }
+
+    private async Task LoadMatchAsync()
+    {
+        var result = await ApiClient.GetMatchByIdAsync(Id);
+        
+        if (result.IsSuccess)
+        {
+            match = result.Data!;
+            errorMessage = null;
+        }
+        else
+        {
+            errorMessage = result.ErrorMessage;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (editContext == null || messageStore == null)
+            return;
+
+        isSaving = true;
+        errorMessage = null;
+        
+        // Clear previous validation errors
+        messageStore.Clear();
+
+        try
+        {
+            if (Id == 0)
+            {
+                // Create new match
+                var result = await ApiClient.CreateMatchAsync(match);
+                
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/matches");
+                }
+                else
+                {
+                    HandleApiErrors(result);
+                }
+            }
+            else
+            {
+                // Update existing match
+                var result = await ApiClient.UpdateMatchAsync(Id, match);
+                
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/matches");
+                }
+                else
+                {
+                    HandleApiErrors(result);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving match: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void HandleApiErrors(Result result)
+    {
+        if (result.HasValidationErrors && messageStore != null && editContext != null)
+        {
+            // Add server validation errors to ValidationMessageStore
+            foreach (var error in result.Errors)
+            {
+                var fieldName = error.Key;
+                var errors = error.Value;
+                
+                var fieldIdentifier = editContext.Field(fieldName);
+                
+                foreach (var errorMsg in errors)
+                {
+                    messageStore.Add(fieldIdentifier, errorMsg);
+                }
+            }
+            
+            editContext.NotifyValidationStateChanged();
+            
+            errorMessage = "Please fix the validation errors above";
+        }
+        else
+        {
+            errorMessage = result.ErrorMessage;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/matches");
+    }
+}
