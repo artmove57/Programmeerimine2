@@ -1,0 +1,148 @@
+@page "/edit/{Id:int}"
+@inject IApiClient ApiClient
+@inject NavigationManager Navigation
+@using KooliProjekt.BlazorApp.API
+
+<PageTitle>@(Id == 0 ? "New Team" : "Edit Team")</PageTitle>
+
+<h1>@(Id == 0 ? "Create New Team" : $"Edit Team #{Id}")</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="@team" OnValidSubmit="@HandleSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label for="id" class="form-label">ID:</label>
+                <input type="text" class="form-control" id="id" value="@team.Id" disabled />
+            </div>
+
+            <div class="mb-3">
+                <label for="name" class="form-label">Name:</label>
+                <InputText @bind-Value="team.Name" class="form-control" id="name" />
+                <ValidationMessage For="@(() => team.Name)" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger">
+                    @errorMessage
+                </div>
+            }
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-success me-2" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Saving...</span>
+                    }
+                    else
+                    {
+                        <span class="bi bi-check-circle me-1"></span>
+                        <span>Save</span>
+                    }
+                </button>
+                <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                    <span class="bi bi-x-circle me-1"></span> Cancel
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private KooliProjekt.BlazorApp.Models.Team team = new();
+    private string? errorMessage;
+    private bool isSaving = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id == 0)
+        {
+            // Create new team
+            team = new KooliProjekt.BlazorApp.Models.Team { Id = 0, Name = string.Empty };
+        }
+        else
+        {
+            // Load existing team
+            await LoadTeamAsync();
+        }
+    }
+
+    private async Task LoadTeamAsync()
+    {
+        var result = await ApiClient.GetByIdAsync(Id);
+        
+        if (result.IsSuccess)
+        {
+            team = result.Data!;
+            errorMessage = null;
+        }
+        else
+        {
+            errorMessage = result.ErrorMessage;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(team.Name))
+        {
+            errorMessage = "Please enter a team name";
+            return;
+        }
+
+        isSaving = true;
+        errorMessage = null;
+
+        try
+        {
+            if (Id == 0)
+            {
+                // Create new team
+                var result = await ApiClient.CreateAsync(team);
+                
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/");
+                }
+                else
+                {
+                    errorMessage = result.ErrorMessage;
+                }
+            }
+            else
+            {
+                // Update existing team
+                var result = await ApiClient.UpdateAsync(Id, team);
+                
+                if (result.IsSuccess)
+                {
+                    Navigation.NavigateTo("/");
+                }
+                else
+                {
+                    errorMessage = result.ErrorMessage;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving team: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/");
+    }
+}

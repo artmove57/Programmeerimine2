@@ -1,5 +1,8 @@
 @page "/teams"
-@inject HttpClient Http
+@inject IApiClient ApiClient
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@using KooliProjekt.BlazorApp.API
 
 <PageTitle>Teams</PageTitle>
 
@@ -7,17 +10,24 @@
 
 <p>This component demonstrates fetching data from the API.</p>
 
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="CreateNew">
+        <span class="bi bi-plus-circle"></span> New Team
+    </button>
+</div>
+
 @if (teams == null)
 {
     <p><em>Loading...</em></p>
 }
 else
 {
-    <table class="table">
+    <table class="table table-striped">
         <thead>
             <tr>
                 <th>ID</th>
                 <th>Name</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -26,25 +36,84 @@ else
                 <tr>
                     <td>@team.Id</td>
                     <td>@team.Name</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning me-2" @onclick="() => Edit(team.Id)">
+                            <span class="bi bi-pencil"></span> Edit
+                        </button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(team)">
+                            <span class="bi bi-trash"></span> Delete
+                        </button>
+                    </td>
                 </tr>
             }
         </tbody>
     </table>
 }
 
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger mt-3">
+        @errorMessage
+    </div>
+}
+
 @code {
-    private KooliProjekt.BlazorApp.Models.Team[]? teams;
+    private List<KooliProjekt.BlazorApp.Models.Team>? teams;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
         try
         {
-            teams = await Http.GetFromJsonAsync<KooliProjekt.BlazorApp.Models.Team[]>("Teams");
+            var result = await ApiClient.GetAllAsync();
+
+            if (result.IsSuccess)
+            {
+                teams = result.Data;
+                errorMessage = null;
+            }
+            else
+            {
+                errorMessage = result.ErrorMessage;
+                teams = new List<KooliProjekt.BlazorApp.Models.Team>();
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading teams: {ex.Message}");
-            teams = Array.Empty<KooliProjekt.BlazorApp.Models.Team>();
+            errorMessage = $"Error loading teams: {ex.Message}";
+            teams = new List<KooliProjekt.BlazorApp.Models.Team>();
+        }
+    }
+
+    private void CreateNew()
+    {
+        Navigation.NavigateTo("/edit/0");
+    }
+
+    private void Edit(int id)
+    {
+        Navigation.NavigateTo($"/edit/{id}");
+    }
+
+    private async Task Delete(KooliProjekt.BlazorApp.Models.Team team)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete team '{team.Name}'?"))
+        {
+            var result = await ApiClient.DeleteAsync(team.Id);
+
+            if (result.IsSuccess)
+            {
+                await LoadDataAsync();
+            }
+            else
+            {
+                errorMessage = result.ErrorMessage;
+            }
         }
     }
 }
