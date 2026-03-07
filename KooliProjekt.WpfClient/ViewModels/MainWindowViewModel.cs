@@ -13,6 +13,7 @@ namespace KooliProjekt.WpfClient.ViewModels
     /// <summary>
     /// MainWindowViewModel - koordineerib MainWindow tööd
     /// Extendib NotifyPropertyChangedBase, et UI saaks muudatustest teada
+    /// Kasutab Result pattern'i vigade käsitlemiseks
     /// </summary>
     public class MainWindowViewModel : NotifyPropertyChangedBase
     {
@@ -61,6 +62,12 @@ namespace KooliProjekt.WpfClient.ViewModels
             get => _statusMessage;
             set => SetProperty(ref _statusMessage, value);
         }
+
+        /// <summary>
+        /// OnError action - kutsutakse kui tekib viga
+        /// Seatakse MainWindow.xaml.cs failis
+        /// </summary>
+        public Action<string>? OnError { get; set; }
 
         #endregion
 
@@ -137,6 +144,7 @@ namespace KooliProjekt.WpfClient.ViewModels
 
         /// <summary>
         /// Laadi kõik meeskonnad API'st
+        /// Kasutab Result pattern'i vigade käsitlemiseks
         /// </summary>
         private async Task LoadDataAsync()
         {
@@ -144,21 +152,30 @@ namespace KooliProjekt.WpfClient.ViewModels
             {
                 StatusMessage = "Laadin andmeid...";
 
-                var teams = await _apiClient.GetAllAsync();
+                // API kutse Result pattern'iga
+                var result = await _apiClient.GetAllAsync();
 
+                // Kontrolli kas tekkis viga
+                if (!result.IsSuccess)
+                {
+                    StatusMessage = $"Viga laadimisel: {result.ErrorMessage}";
+                    OnError?.Invoke(result.ErrorMessage);
+                    return;
+                }
+
+                // Kui õnnestus, uuenda kollektsiooni
                 Teams.Clear();
-                foreach (var team in teams)
+                foreach (var team in result.Data!)
                 {
                     Teams.Add(team);
                 }
 
-                StatusMessage = $"Laaditud {teams.Count} meeskonda - {DateTime.Now:HH:mm:ss}";
+                StatusMessage = $"Laaditud {result.Data!.Count} meeskonda - {DateTime.Now:HH:mm:ss}";
             }
             catch (Exception ex)
             {
                 StatusMessage = $"Viga: {ex.Message}";
-                MessageBox.Show($"Viga andmete laadimisel:\n{ex.Message}", 
-                    "Viga", MessageBoxButton.OK, MessageBoxImage.Error);
+                OnError?.Invoke($"Ootamatu viga: {ex.Message}");
             }
         }
 
@@ -188,6 +205,7 @@ namespace KooliProjekt.WpfClient.ViewModels
 
         /// <summary>
         /// Salvesta meeskond (Create või Update)
+        /// Kasutab Result pattern'i vigade käsitlemiseks
         /// </summary>
         private async Task SaveTeamAsync()
         {
@@ -197,8 +215,7 @@ namespace KooliProjekt.WpfClient.ViewModels
             // Valideeri
             if (string.IsNullOrWhiteSpace(SelectedTeam.Name))
             {
-                MessageBox.Show("Palun sisesta meeskonna nimi!", 
-                    "Valideerimise viga", MessageBoxButton.OK, MessageBoxImage.Warning);
+                OnError?.Invoke("Palun sisesta meeskonna nimi!");
                 return;
             }
 
@@ -208,26 +225,42 @@ namespace KooliProjekt.WpfClient.ViewModels
                 {
                     // CREATE - uus meeskond
                     StatusMessage = "Salvestan uut meeskonda...";
-                    var createdTeam = await _apiClient.CreateAsync(SelectedTeam);
+
+                    var result = await _apiClient.CreateAsync(SelectedTeam);
+
+                    if (!result.IsSuccess)
+                    {
+                        StatusMessage = $"Viga salvestamisel: {result.ErrorMessage}";
+                        OnError?.Invoke($"Viga meeskonna loomisel:\n{result.ErrorMessage}");
+                        return;
+                    }
 
                     // Asenda ajutine meeskond loodud meeskonnaga (koos ID'ga)
                     var index = Teams.IndexOf(SelectedTeam);
                     if (index >= 0)
                     {
-                        Teams[index] = createdTeam;
-                        SelectedTeam = createdTeam;
+                        Teams[index] = result.Data!;
+                        SelectedTeam = result.Data;
                     }
 
-                    MessageBox.Show($"Meeskond '{createdTeam.Name}' edukalt loodud!", 
+                    MessageBox.Show($"Meeskond '{result.Data!.Name}' edukalt loodud!", 
                         "Õnnestus", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                    StatusMessage = $"Meeskond '{createdTeam.Name}' loodud - {DateTime.Now:HH:mm:ss}";
+                    StatusMessage = $"Meeskond '{result.Data.Name}' loodud - {DateTime.Now:HH:mm:ss}";
                 }
                 else
                 {
                     // UPDATE - olemasolev meeskond
                     StatusMessage = "Salvestan muudatusi...";
-                    await _apiClient.UpdateAsync(SelectedTeam.Id, SelectedTeam);
+
+                    var result = await _apiClient.UpdateAsync(SelectedTeam.Id, SelectedTeam);
+
+                    if (!result.IsSuccess)
+                    {
+                        StatusMessage = $"Viga salvestamisel: {result.ErrorMessage}";
+                        OnError?.Invoke($"Viga meeskonna uuendamisel:\n{result.ErrorMessage}");
+                        return;
+                    }
 
                     MessageBox.Show($"Meeskond '{SelectedTeam.Name}' edukalt uuendatud!", 
                         "Õnnestus", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -241,13 +274,13 @@ namespace KooliProjekt.WpfClient.ViewModels
             catch (Exception ex)
             {
                 StatusMessage = $"Viga: {ex.Message}";
-                MessageBox.Show($"Viga salvestamisel:\n{ex.Message}", 
-                    "Viga", MessageBoxButton.OK, MessageBoxImage.Error);
+                OnError?.Invoke($"Ootamatu viga salvestamisel:\n{ex.Message}");
             }
         }
 
         /// <summary>
         /// Kustuta valitud meeskond
+        /// Kasutab Result pattern'i vigade käsitlemiseks
         /// </summary>
         private async Task DeleteTeamAsync()
         {
@@ -268,7 +301,14 @@ namespace KooliProjekt.WpfClient.ViewModels
             {
                 StatusMessage = $"Kustutan meeskonda '{SelectedTeam.Name}'...";
 
-                await _apiClient.DeleteAsync(SelectedTeam.Id);
+                var deleteResult = await _apiClient.DeleteAsync(SelectedTeam.Id);
+
+                if (!deleteResult.IsSuccess)
+                {
+                    StatusMessage = $"Viga kustutamisel: {deleteResult.ErrorMessage}";
+                    OnError?.Invoke($"Viga meeskonna kustutamisel:\n{deleteResult.ErrorMessage}");
+                    return;
+                }
 
                 MessageBox.Show($"Meeskond '{SelectedTeam.Name}' edukalt kustutatud!", 
                     "Õnnestus", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -282,8 +322,7 @@ namespace KooliProjekt.WpfClient.ViewModels
             catch (Exception ex)
             {
                 StatusMessage = $"Viga: {ex.Message}";
-                MessageBox.Show($"Viga kustutamisel:\n{ex.Message}", 
-                    "Viga", MessageBoxButton.OK, MessageBoxImage.Error);
+                OnError?.Invoke($"Ootamatu viga kustutamisel:\n{ex.Message}");
             }
         }
 
