@@ -2,6 +2,7 @@
 @inject IApiClient ApiClient
 @inject NavigationManager Navigation
 @using KooliProjekt.BlazorApp.API
+@using Microsoft.AspNetCore.Components.Forms
 
 <PageTitle>@(Id == 0 ? "New Team" : "Edit Team")</PageTitle>
 
@@ -9,7 +10,7 @@
 
 <div class="row">
     <div class="col-md-6">
-        <EditForm Model="@team" OnValidSubmit="@HandleSubmit">
+        <EditForm EditContext="@editContext" OnValidSubmit="@HandleValidSubmit">
             <DataAnnotationsValidator />
             <ValidationSummary />
 
@@ -27,7 +28,8 @@
             @if (!string.IsNullOrEmpty(errorMessage))
             {
                 <div class="alert alert-danger">
-                    @errorMessage
+                    <h5>Errors:</h5>
+                    <p>@errorMessage</p>
                 </div>
             }
 
@@ -50,6 +52,26 @@
             </div>
         </EditForm>
     </div>
+
+    <div class="col-md-6">
+        <div class="card bg-light">
+            <div class="card-header">
+                <h5>Validation Rules</h5>
+            </div>
+            <div class="card-body">
+                <ul>
+                    <li><strong>Name:</strong> Required</li>
+                    <li><strong>Name Length:</strong> 2-50 characters</li>
+                </ul>
+                <p class="text-muted mt-2">
+                    <small>
+                        ✅ Client-side validation (Blazor)<br />
+                        ✅ Server-side validation (API)
+                    </small>
+                </p>
+            </div>
+        </div>
+    </div>
 </div>
 
 @code {
@@ -57,6 +79,8 @@
     public int Id { get; set; }
 
     private KooliProjekt.BlazorApp.Models.Team team = new();
+    private EditContext? editContext;
+    private ValidationMessageStore? messageStore;
     private string? errorMessage;
     private bool isSaving = false;
 
@@ -72,12 +96,23 @@
             // Load existing team
             await LoadTeamAsync();
         }
+
+        // Initialize EditContext and ValidationMessageStore
+        editContext = new EditContext(team);
+        messageStore = new ValidationMessageStore(editContext);
+
+        // Clear validation messages when field changes
+        editContext.OnFieldChanged += (sender, args) =>
+        {
+            messageStore.Clear(args.FieldIdentifier);
+            errorMessage = null;
+        };
     }
 
     private async Task LoadTeamAsync()
     {
         var result = await ApiClient.GetByIdAsync(Id);
-        
+
         if (result.IsSuccess)
         {
             team = result.Data!;
@@ -89,16 +124,16 @@
         }
     }
 
-    private async Task HandleSubmit()
+    private async Task HandleValidSubmit()
     {
-        if (string.IsNullOrWhiteSpace(team.Name))
-        {
-            errorMessage = "Please enter a team name";
+        if (editContext == null || messageStore == null)
             return;
-        }
 
         isSaving = true;
         errorMessage = null;
+
+        // Clear previous validation errors
+        messageStore.Clear();
 
         try
         {
@@ -106,28 +141,28 @@
             {
                 // Create new team
                 var result = await ApiClient.CreateAsync(team);
-                
+
                 if (result.IsSuccess)
                 {
                     Navigation.NavigateTo("/");
                 }
                 else
                 {
-                    errorMessage = result.ErrorMessage;
+                    HandleApiErrors(result);
                 }
             }
             else
             {
                 // Update existing team
                 var result = await ApiClient.UpdateAsync(Id, team);
-                
+
                 if (result.IsSuccess)
                 {
                     Navigation.NavigateTo("/");
                 }
                 else
                 {
-                    errorMessage = result.ErrorMessage;
+                    HandleApiErrors(result);
                 }
             }
         }
@@ -138,6 +173,42 @@
         finally
         {
             isSaving = false;
+        }
+    }
+
+    /// <summary>
+    /// Handle API errors - add server validation errors to EditContext
+    /// This makes server-side validation errors appear in Blazor ValidationMessage components
+    /// </summary>
+    private void HandleApiErrors(Result result)
+    {
+        if (result.HasValidationErrors && messageStore != null && editContext != null)
+        {
+            // Add server validation errors to ValidationMessageStore
+            foreach (var error in result.Errors)
+            {
+                var fieldName = error.Key;
+                var errors = error.Value;
+
+                // Create FieldIdentifier for the field
+                var fieldIdentifier = editContext.Field(fieldName);
+
+                // Add all error messages for this field
+                foreach (var errorMsg in errors)
+                {
+                    messageStore.Add(fieldIdentifier, errorMsg);
+                }
+            }
+
+            // Notify EditContext that validation state changed
+            editContext.NotifyValidationStateChanged();
+
+            errorMessage = "Please fix the validation errors above";
+        }
+        else
+        {
+            // General error
+            errorMessage = result.ErrorMessage;
         }
     }
 
