@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KooliProjekt.WpfApp.UnitTes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KooliProjekt.WinFormsApp", "KooliProjekt.WinFormsApp\KooliProjekt.WinFormsApp.csproj", "{A7ED4275-A3AF-4D40-BC8E-C7CBD8C21C2C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KooliProjekt.BlazorApp", "KooliProjekt.BlazorApp\KooliProjekt.BlazorApp.csproj", "{D86E99DC-67E9-45B0-A43F-240D117DDB74}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,18 @@ Global
 		{A7ED4275-A3AF-4D40-BC8E-C7CBD8C21C2C}.Release|x64.Build.0 = Release|Any CPU
 		{A7ED4275-A3AF-4D40-BC8E-C7CBD8C21C2C}.Release|x86.ActiveCfg = Release|Any CPU
 		{A7ED4275-A3AF-4D40-BC8E-C7CBD8C21C2C}.Release|x86.Build.0 = Release|Any CPU
+		{D86E99DC-67E9-45B0-A43F-240D117DDB74}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D86E99DC-67E9-45B0-A43F-240D117DDB74}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D86E99DC-67E9-45B0-A43F-240D117DDB74}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D86E99DC-67E9-45B0-A43F-240D117DDB74}.Debug|x64.Build.0 = Debug|Any CPU
+		{D86E99DC-67E9-45B0-A43F-240D117DDB74}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D86E99DC-67E9-45B0-A43F-240D117DDB74}.Debug|x86.Build.0 = Debug|Any CPU
+		{D86E99DC-67E9-45B0-A43F-240D117DDB74}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D86E99DC-67E9-45B0-A43F-240D117DDB74}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D86E99DC-67E9-45B0-A43F-240D117DDB74}.Release|x64.ActiveCfg = Release|Any CPU
+		{D86E99DC-67E9-45B0-A43F-240D117DDB74}.Release|x64.Build.0 = Release|Any CPU
+		{D86E99DC-67E9-45B0-A43F-240D117DDB74}.Release|x86.ActiveCfg = Release|Any CPU
+		{D86E99DC-67E9-45B0-A43F-240D117DDB74}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,50 @@
+@page "/teams"
+@inject HttpClient Http
+
+<PageTitle>Teams</PageTitle>
+
+<h1>Teams</h1>
+
+<p>This component demonstrates fetching data from the API.</p>
+
+@if (teams == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var team in teams)
+            {
+                <tr>
+                    <td>@team.Id</td>
+                    <td>@team.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private KooliProjekt.BlazorApp.Models.Team[]? teams;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            teams = await Http.GetFromJsonAsync<KooliProjekt.BlazorApp.Models.Team[]>("Teams");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading teams: {ex.Message}");
+            teams = Array.Empty<KooliProjekt.BlazorApp.Models.Team>();
+        }
+    }
+}

@@ -31,6 +31,9 @@ namespace KooliProjekt
 
             builder.Services.AddControllersWithViews();
 
+            // Add CORS support for Blazor WebAssembly
+            builder.Services.AddCors();
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -47,6 +50,13 @@ namespace KooliProjekt
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
+
+            // Enable CORS for Blazor WebAssembly
+            app.UseCors(
+                options => options.AllowAnyOrigin()
+                             .AllowAnyMethod()
+                             .AllowAnyHeader()
+            );
 
             app.UseRouting();
 
